@@ -11,6 +11,12 @@ export interface TextEditOptions {
   /** grow with content instead of using a fixed width (text objects) */
   autoGrow?: boolean;
   padding?: number;
+  /** override the editor's border-radius (e.g. "50%" so a circle reads as a circle) */
+  borderRadius?: string;
+  /** strip the border/background/shadow so editing looks like the plain text itself */
+  chromeless?: boolean;
+  /** select all existing text on open (so typing overwrites) instead of placing the caret at the end */
+  selectAll?: boolean;
   onInput: (v: string) => void;
   onCommit: (v: string) => void;
   onCancel: () => void;
@@ -44,6 +50,13 @@ export class TextEditor {
       textAlign: opts.align ?? "center",
     });
     if (opts.padding != null) el.style.padding = `${opts.padding}px`;
+    if (opts.borderRadius != null) el.style.borderRadius = opts.borderRadius;
+    if (opts.chromeless) {
+      el.style.border = "none";
+      el.style.background = "transparent";
+      el.style.boxShadow = "none";
+      el.style.borderRadius = "0";
+    }
     if (opts.autoGrow) {
       el.style.display = "block";
       el.style.whiteSpace = "pre";
@@ -65,6 +78,12 @@ export class TextEditor {
     });
     el.addEventListener("blur", () => this.commit());
     el.addEventListener("pointerdown", (e) => e.stopPropagation());
+    // Keep clicks inside the editor from reaching the canvas, which would
+    // hit-test the shape and re-open editing — wiping the browser's native
+    // double-click-to-select-word (and triple-click-to-select-all). We only
+    // stop propagation, never preventDefault, so the native selection stands.
+    el.addEventListener("click", (e) => e.stopPropagation());
+    el.addEventListener("dblclick", (e) => e.stopPropagation());
     this.root.appendChild(el);
     this.el = el;
     requestAnimationFrame(() => {
@@ -73,7 +92,7 @@ export class TextEditor {
       if (sel) {
         const r = document.createRange();
         r.selectNodeContents(el);
-        r.collapse(false);
+        if (!opts.selectAll) r.collapse(false); // caret at end unless we want everything selected
         sel.removeAllRanges();
         sel.addRange(r);
       }
@@ -96,10 +115,12 @@ export class TextEditor {
   }
 
   private remove(): void {
-    if (this.el) {
-      this.el.remove();
-      this.el = null;
-      this.opts = null;
-    }
+    // Clear refs BEFORE detaching: removing a focused editor fires a synchronous
+    // `blur`, whose handler re-enters commit()/remove(). Nulling first makes that
+    // re-entrant call a no-op instead of trying to detach an already-removed node.
+    const el = this.el;
+    this.el = null;
+    this.opts = null;
+    el?.remove();
   }
 }

@@ -606,7 +606,10 @@ export class Controller {
 
   /** Create a free-floating text object at a world point and edit it immediately. */
   private placeText(wx: number, wy: number): void {
-    const shape = actions.createShape("text", wx, wy, 40, 30, {
+    // size the shape to the real text metrics so the selection box matches the
+    // editor overlay (a hardcoded box wouldn't line up with the auto-grown editor)
+    const box = measureTextBox("");
+    const shape = actions.createShape("text", wx, wy, box.w, box.h, {
       fill: "#e2e8f0",
       stroke: "#e2e8f0",
     });
@@ -625,8 +628,11 @@ export class Controller {
     const zoom = this.zoom();
 
     if (s.kind === "text") {
+      // hide the rendered text so the chromeless editor below isn't doubled by it
+      scene.setNodeVisible(id, false);
       // grow-with-content editor that overlays the floating text
       const finish = (v: string) => {
+        scene.setNodeVisible(id, true);
         actions.setShapeText(id, v);
         if (v.trim() === "") actions.deleteShape(id);
       };
@@ -637,14 +643,17 @@ export class Controller {
         h: s.h * zoom,
         value,
         color: s.fill,
-        background: "rgba(11,18,32,0.85)",
+        background: "transparent",
         fontSize: (s.fontSize ?? TEXT_FONT_SIZE) * zoom,
         align: "left",
         autoGrow: true,
+        chromeless: true,
+        selectAll: !seed,
         padding: TEXT_PAD * zoom,
         onInput: (v) => actions.setShapeText(id, v),
         onCommit: finish,
         onCancel: () => {
+          scene.setNodeVisible(id, true);
           if (isNewText) actions.deleteShape(id);
           else actions.setShapeText(id, this.editOriginal);
         },
@@ -653,7 +662,29 @@ export class Controller {
       return;
     }
 
-    const bg = s.kind === "icon" || s.kind === "image" ? "rgba(11,18,32,0.92)" : s.fill;
+    if (s.kind === "icon" || s.kind === "image") {
+      // edit the label where it lives: beneath the object, in a light color
+      const w = Math.max(80, s.w * 1.5) * zoom;
+      this.textEditor.open({
+        x: tl.x + (s.w * zoom - w) / 2,
+        y: tl.y + s.h * zoom + 6 * zoom,
+        w,
+        h: 22 * zoom,
+        value,
+        color: "#e2e8f0",
+        background: "rgba(11,18,32,0.92)",
+        fontSize: 14 * zoom,
+        align: "center",
+        selectAll: !seed,
+        onInput: (v) => actions.setShapeText(id, v),
+        onCommit: (v) => actions.setShapeText(id, v),
+        onCancel: () => actions.setShapeText(id, this.editOriginal),
+      });
+      if (seed) actions.setShapeText(id, value);
+      return;
+    }
+
+    // rect / circle: label is centered inside the shape; a circle gets a round editor
     this.textEditor.open({
       x: tl.x,
       y: tl.y,
@@ -661,8 +692,10 @@ export class Controller {
       h: s.h * zoom,
       value,
       color: numToCss(readableText(s.fill)),
-      background: bg,
+      background: s.fill,
       fontSize: 16 * zoom,
+      borderRadius: s.kind === "circle" ? "50%" : undefined,
+      selectAll: !seed,
       onInput: (v) => actions.setShapeText(id, v),
       onCommit: (v) => actions.setShapeText(id, v),
       onCancel: () => actions.setShapeText(id, this.editOriginal),
@@ -691,6 +724,7 @@ export class Controller {
       color: "#e2e8f0",
       background: "rgba(11,18,32,0.95)",
       fontSize: 14,
+      selectAll: !seed,
       onInput: (v) => actions.setEdgeLabel(id, v),
       onCommit: (v) => actions.setEdgeLabel(id, v),
       onCancel: () => actions.setEdgeLabel(id, this.editOriginal),
@@ -789,7 +823,12 @@ export class Controller {
       if (!s) continue;
       const tl = worldToScreen(s.x, s.y);
       const br = worldToScreen(s.x + s.w, s.y + s.h);
-      g.roundRect(tl.x - 3, tl.y - 3, br.x - tl.x + 6, br.y - tl.y + 6, 5);
+      if (s.kind === "circle") {
+        // trace the circle itself, not a box, so selecting it doesn't read as a square
+        g.ellipse((tl.x + br.x) / 2, (tl.y + br.y) / 2, (br.x - tl.x) / 2 + 3, (br.y - tl.y) / 2 + 3);
+      } else {
+        g.roundRect(tl.x - 3, tl.y - 3, br.x - tl.x + 6, br.y - tl.y + 6, 5);
+      }
       g.stroke({ width: 2, color: SELECT });
     }
 

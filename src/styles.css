@@ -291,8 +291,11 @@ button {
 .text-editor {
   position: absolute;
   z-index: 50;
-  display: grid;
-  place-items: center;
+  /* flex (not grid) so the caret stays vertically centered even when empty —
+     a grid container has no item to center until the first character is typed */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   padding: 4px 6px;
   border-radius: 8px;

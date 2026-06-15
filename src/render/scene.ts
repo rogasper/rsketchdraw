@@ -109,6 +109,15 @@ class Scene {
     this.requestRender();
   }
 
+  /** Hide/show a node's rendered view (used to avoid double text while its label is edited). */
+  setNodeVisible(id: ID, visible: boolean): void {
+    const view = this.nodeViews.get(id);
+    if (view && view.container.visible !== visible) {
+      view.container.visible = visible;
+      this.requestRender();
+    }
+  }
+
   removeNode(id: ID): void {
     const view = this.nodeViews.get(id);
     if (view) {

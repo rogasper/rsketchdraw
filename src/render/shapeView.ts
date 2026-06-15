@@ -28,8 +28,11 @@ function styleKeyOf(s: Shape): string {
   return `${s.kind}|${s.w}|${s.h}|${s.fill}|${s.stroke}|${s.icon ?? ""}|${s.src ?? ""}`;
 }
 function textKeyOf(s: Shape): string {
-  return `${s.kind}|${s.text}|${s.w}|${s.fill}|${s.fontSize ?? ""}`;
+  return `${s.kind}|${s.text}|${s.w}|${s.h}|${s.fill}|${s.fontSize ?? ""}`;
 }
+
+/** Gap (world units) between an icon/image and its label sitting beneath it. */
+const LABEL_GAP = 6;
 
 function textStyle(s: Shape): TextStyleOptions {
   if (s.kind === "text") {
@@ -41,6 +44,19 @@ function textStyle(s: Shape): TextStyleOptions {
       fill: hexToNumber(s.fill),
       align: "left",
       lineHeight: fontSize * 1.3,
+    };
+  }
+  if (s.kind === "icon" || s.kind === "image") {
+    // label sits beneath the object on the canvas, so it needs a light, canvas-readable color
+    return {
+      fontFamily: FONT,
+      fontSize: 14,
+      fontWeight: "500",
+      fill: 0xe2e8f0,
+      align: "center",
+      wordWrap: true,
+      wordWrapWidth: Math.max(80, s.w * 1.5),
+      lineHeight: 18,
     };
   }
   return {
@@ -172,6 +188,10 @@ function syncText(view: NodeView, s: Shape): void {
   if (s.kind === "text") {
     view.text.anchor.set(0);
     view.text.position.set(TEXT_PAD, TEXT_PAD);
+  } else if (s.kind === "icon" || s.kind === "image") {
+    // top-center anchor placed just under the object's bottom edge
+    view.text.anchor.set(0.5, 0);
+    view.text.position.set(s.w / 2, s.h + LABEL_GAP);
   } else {
     view.text.anchor.set(0.5);
     view.text.position.set(s.w / 2, s.h / 2);
