@@ -17,7 +17,7 @@ export interface Shape {
   icon?: string;
   /** only for kind === "image": the image data URL (embedded so it persists & shares) */
   src?: string;
-  /** only for kind === "text": font size in world units (defaults to TEXT_FONT_SIZE) */
+  /** label/text font size in world units; scales with the object on resize (defaults per kind) */
   fontSize?: number;
 }
 

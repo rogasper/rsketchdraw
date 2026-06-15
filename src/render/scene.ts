@@ -109,13 +109,13 @@ class Scene {
     this.requestRender();
   }
 
-  /** Hide/show a node's rendered view (used to avoid double text while its label is edited). */
-  setNodeVisible(id: ID, visible: boolean): void {
+  /** Hide/show just a node's label text (keeps the icon/shape) while its label is edited in an overlay. */
+  setNodeLabelHidden(id: ID, hidden: boolean): void {
     const view = this.nodeViews.get(id);
-    if (view && view.container.visible !== visible) {
-      view.container.visible = visible;
-      this.requestRender();
-    }
+    if (!view || view.labelHidden === hidden) return;
+    view.labelHidden = hidden;
+    if (view.text) view.text.visible = !hidden;
+    this.requestRender();
   }
 
   removeNode(id: ID): void {

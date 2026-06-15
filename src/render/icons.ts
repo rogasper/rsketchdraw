@@ -1,11 +1,30 @@
 import type { Graphics } from "pixi.js";
 
 /**
+ * A drawing surface for an icon, using normalized [0..1] coordinates. Implemented
+ * over a PixiJS Graphics (canvas shapes) and over a 2D context (DOM previews), so
+ * the same icon definition renders both on the board and in the "/" palette.
+ */
+export interface IconPen {
+  move(x: number, y: number): IconPen;
+  line(x: number, y: number): IconPen;
+  quad(cx: number, cy: number, x: number, y: number): IconPen;
+  bez(c1x: number, c1y: number, c2x: number, c2y: number, x: number, y: number): IconPen;
+  circle(cx: number, cy: number, r: number): IconPen;
+  ellipse(cx: number, cy: number, rx: number, ry: number): IconPen;
+  rrect(x: number, y: number, w: number, h: number, r: number): IconPen;
+  poly(pts: number[]): IconPen;
+  close(): IconPen;
+  stroke(): IconPen;
+  fill(): IconPen;
+}
+
+/**
  * Icons are drawn with primitive Graphics calls (no fragile SVG path parsing)
  * using normalized [0..1] coordinates mapped onto the shape box. Add an icon by
  * appending to ICONS — it's instantly searchable in the "/" palette.
  */
-class Pen {
+class Pen implements IconPen {
   constructor(
     private g: Graphics,
     private ox: number,
@@ -81,7 +100,7 @@ class Pen {
 export interface IconDef {
   key: string;
   keywords: string[];
-  draw(p: Pen): void;
+  draw(p: IconPen): void;
 }
 
 function polygon(n: number, r: number, cx = 0.5, cy = 0.5, rot = -Math.PI / 2): number[] {
@@ -1001,9 +1020,12 @@ export const ICONS: IconDef[] = [
 
 export const ICON_MAP = new Map(ICONS.map((i) => [i.key, i]));
 
+/** Every icon, alphabetized by key — the default browse order in the "/" palette. */
+export const ICONS_SORTED = [...ICONS].sort((a, b) => a.key.localeCompare(b.key));
+
 export function searchIcons(query: string): IconDef[] {
   const q = query.trim().toLowerCase();
-  if (!q) return ICONS;
+  if (!q) return ICONS_SORTED;
   const scored = ICONS.map((icon) => {
     let score = -1;
     if (icon.key === q) score = 100;
@@ -1031,4 +1053,114 @@ export function drawIcon(
   const def = ICON_MAP.get(key);
   if (!def) return;
   def.draw(new Pen(g, ox, oy, size, color));
+}
+
+/** Draws an icon onto a 2D canvas context — used for DOM previews in the "/" palette. */
+class CanvasPen implements IconPen {
+  private begun = false;
+  constructor(
+    private ctx: CanvasRenderingContext2D,
+    private ox: number,
+    private oy: number,
+    private size: number,
+    private color: string,
+  ) {}
+  private X(n: number) {
+    return this.ox + n * this.size;
+  }
+  private Y(n: number) {
+    return this.oy + n * this.size;
+  }
+  /** PixiJS starts a fresh sub-path per shape+draw; mirror that on the 2D context. */
+  private begin() {
+    if (!this.begun) {
+      this.ctx.beginPath();
+      this.begun = true;
+    }
+  }
+  move(x: number, y: number) {
+    this.begin();
+    this.ctx.moveTo(this.X(x), this.Y(y));
+    return this;
+  }
+  line(x: number, y: number) {
+    this.begin();
+    this.ctx.lineTo(this.X(x), this.Y(y));
+    return this;
+  }
+  quad(cx: number, cy: number, x: number, y: number) {
+    this.begin();
+    this.ctx.quadraticCurveTo(this.X(cx), this.Y(cy), this.X(x), this.Y(y));
+    return this;
+  }
+  bez(c1x: number, c1y: number, c2x: number, c2y: number, x: number, y: number) {
+    this.begin();
+    this.ctx.bezierCurveTo(this.X(c1x), this.Y(c1y), this.X(c2x), this.Y(c2y), this.X(x), this.Y(y));
+    return this;
+  }
+  circle(cx: number, cy: number, r: number) {
+    this.begin();
+    const rr = r * this.size;
+    // moveTo the arc start so it isn't joined to the previous sub-path by a line
+    this.ctx.moveTo(this.X(cx) + rr, this.Y(cy));
+    this.ctx.arc(this.X(cx), this.Y(cy), rr, 0, Math.PI * 2);
+    return this;
+  }
+  ellipse(cx: number, cy: number, rx: number, ry: number) {
+    this.begin();
+    const rxx = rx * this.size;
+    const ryy = ry * this.size;
+    this.ctx.moveTo(this.X(cx) + rxx, this.Y(cy));
+    this.ctx.ellipse(this.X(cx), this.Y(cy), rxx, ryy, 0, 0, Math.PI * 2);
+    return this;
+  }
+  rrect(x: number, y: number, w: number, h: number, r: number) {
+    this.begin();
+    this.ctx.roundRect(this.X(x), this.Y(y), w * this.size, h * this.size, r * this.size);
+    return this;
+  }
+  poly(pts: number[]) {
+    this.begin();
+    for (let i = 0; i < pts.length; i += 2) {
+      const px = this.X(pts[i]);
+      const py = this.Y(pts[i + 1]);
+      if (i === 0) this.ctx.moveTo(px, py);
+      else this.ctx.lineTo(px, py);
+    }
+    this.ctx.closePath();
+    return this;
+  }
+  close() {
+    this.ctx.closePath();
+    return this;
+  }
+  stroke() {
+    this.ctx.strokeStyle = this.color;
+    this.ctx.lineWidth = Math.max(1, this.size * 0.075);
+    this.ctx.lineCap = "round";
+    this.ctx.lineJoin = "round";
+    this.ctx.stroke();
+    this.begun = false;
+    return this;
+  }
+  fill() {
+    this.ctx.fillStyle = this.color;
+    this.ctx.fill();
+    this.begun = false;
+    return this;
+  }
+}
+
+/** Render an icon into a 2D canvas context (for DOM previews). */
+export function renderIconToContext(
+  key: string,
+  ctx: CanvasRenderingContext2D,
+  ox: number,
+  oy: number,
+  size: number,
+  color: string,
+): void {
+  const def = ICON_MAP.get(key);
+  if (!def) return;
+  def.draw(new CanvasPen(ctx, ox, oy, size, color));
 }

@@ -10,7 +10,11 @@ let clipShapes: Shape[] = [];
 let clipEdges: Edge[] = [];
 let pasteCount = 0;
 
-/** Copy selected shapes (and edges whose both ends are selected) to the clipboard. */
+/**
+ * Copy the current selection to the clipboard: every selected shape, plus every
+ * edge that is either explicitly selected or fully spanned by the selected shapes
+ * (so duplicating a subgraph keeps its internal connectors).
+ */
 export function copySelection(): void {
   const sel = $selection.get();
   const shapes: Shape[] = [];
@@ -18,26 +22,28 @@ export function copySelection(): void {
     const s = doc.board.shapes[id];
     if (s) shapes.push({ ...s });
   }
-  if (!shapes.length) return;
   const ids = new Set(shapes.map((s) => s.id));
   const edges: Edge[] = [];
   for (const e of Object.values(doc.board.edges)) {
-    if (ids.has(e.from) && ids.has(e.to)) edges.push({ ...e });
+    const spanned = ids.has(e.from) && ids.has(e.to);
+    if (sel.edges.has(e.id) || spanned) edges.push({ ...e });
   }
+  if (!shapes.length && !edges.length) return;
   clipShapes = shapes;
   clipEdges = edges;
   pasteCount = 0;
 }
 
 export function cutSelection(): void {
-  if (!$selection.get().shapes.size) return;
+  const sel = $selection.get();
+  if (!sel.shapes.size && !sel.edges.size) return;
   copySelection();
   deleteSelection();
 }
 
 /** Paste a fresh copy of the clipboard, cascaded so repeats don't stack exactly. */
 export function pasteClipboard(): void {
-  if (!clipShapes.length) return;
+  if (!clipShapes.length && !clipEdges.length) return;
   pasteCount++;
   const d = PASTE_OFFSET * pasteCount;
 
@@ -54,13 +60,21 @@ export function pasteClipboard(): void {
 
   const newEdgeIds: string[] = [];
   for (const e of clipEdges) {
-    const from = idMap.get(e.from);
-    const to = idMap.get(e.to);
+    // an endpoint resolves to its pasted copy, or — for a standalone edge whose
+    // endpoints weren't copied — back onto the original shape if it still exists.
+    const fromCopied = idMap.has(e.from);
+    const toCopied = idMap.has(e.to);
+    const from = fromCopied ? idMap.get(e.from)! : doc.board.shapes[e.from] ? e.from : undefined;
+    const to = toCopied ? idMap.get(e.to)! : doc.board.shapes[e.to] ? e.to : undefined;
     if (!from || !to) continue;
     const nid = uid();
     const clone: Edge = { ...e, id: nid, from, to };
-    if (clone.cx !== undefined) clone.cx += d;
-    if (clone.cy !== undefined) clone.cy += d;
+    // only shift a manual bend when both endpoints also moved by d, so an edge
+    // re-attached to existing shapes keeps its shape relative to them.
+    if (fromCopied && toCopied) {
+      if (clone.cx !== undefined) clone.cx += d;
+      if (clone.cy !== undefined) clone.cy += d;
+    }
     doc.board.edges[nid] = clone;
     scene.addEdge(nid);
     newEdgeIds.push(nid);
@@ -71,5 +85,5 @@ export function pasteClipboard(): void {
 }
 
 export function hasClipboard(): boolean {
-  return clipShapes.length > 0;
+  return clipShapes.length > 0 || clipEdges.length > 0;
 }

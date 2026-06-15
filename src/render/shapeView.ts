@@ -7,12 +7,23 @@ import {
   type TextStyleOptions,
   Texture,
 } from "pixi.js";
-import type { Shape } from "../state/types";
+import type { Shape, ShapeKind } from "../state/types";
 import { hexToNumber, readableText } from "./geometry";
 import { drawIcon } from "./icons";
 import { TEXT_FONT_SIZE, TEXT_PAD } from "./measure";
 
 const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+
+/** caption font for an icon/image label, and the centered label inside a rect/circle */
+const ICON_LABEL_FONT = 14;
+const SHAPE_LABEL_FONT = 16;
+
+/** Default label font size (world units) for a shape kind, before any resize scaling. */
+export function defaultLabelFont(kind: ShapeKind): number {
+  if (kind === "text") return TEXT_FONT_SIZE;
+  if (kind === "icon" || kind === "image") return ICON_LABEL_FONT;
+  return SHAPE_LABEL_FONT; // rect / circle
+}
 
 export interface NodeView {
   container: Container;
@@ -22,6 +33,8 @@ export interface NodeView {
   styleKey: string;
   textKey: string;
   srcKey: string;
+  /** when true the rendered label is hidden (its text is being edited in an overlay) */
+  labelHidden: boolean;
 }
 
 function styleKeyOf(s: Shape): string {
@@ -48,26 +61,28 @@ function textStyle(s: Shape): TextStyleOptions {
   }
   if (s.kind === "icon" || s.kind === "image") {
     // label sits beneath the object on the canvas, so it needs a light, canvas-readable color
+    const fontSize = s.fontSize ?? ICON_LABEL_FONT;
     return {
       fontFamily: FONT,
-      fontSize: 14,
+      fontSize,
       fontWeight: "500",
       fill: 0xe2e8f0,
       align: "center",
       wordWrap: true,
       wordWrapWidth: Math.max(80, s.w * 1.5),
-      lineHeight: 18,
+      lineHeight: fontSize * 1.3,
     };
   }
+  const fontSize = s.fontSize ?? SHAPE_LABEL_FONT;
   return {
     fontFamily: FONT,
-    fontSize: 16,
+    fontSize,
     fontWeight: "500",
     fill: readableText(s.fill),
     align: "center",
     wordWrap: true,
     wordWrapWidth: Math.max(24, s.w - 16),
-    lineHeight: 20,
+    lineHeight: fontSize * 1.25,
   };
 }
 
@@ -83,6 +98,7 @@ export function createNodeView(s: Shape, onReady?: () => void): NodeView {
     styleKey: "",
     textKey: "",
     srcKey: "",
+    labelHidden: false,
   };
   updateNodeView(view, s, onReady);
   return view;
@@ -196,4 +212,6 @@ function syncText(view: NodeView, s: Shape): void {
     view.text.anchor.set(0.5);
     view.text.position.set(s.w / 2, s.h / 2);
   }
+  // keep the label hidden across live updates while it's being edited in an overlay
+  view.text.visible = !view.labelHidden;
 }

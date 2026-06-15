@@ -7,12 +7,14 @@ export interface TextEditOptions {
   color: string;
   background: string;
   fontSize: number;
+  /** match the rendered text weight (e.g. "500", "600") */
+  fontWeight?: string;
+  /** line height in px (already scaled for zoom), to match the rendered text */
+  lineHeight?: number;
   align?: "left" | "center";
   /** grow with content instead of using a fixed width (text objects) */
   autoGrow?: boolean;
   padding?: number;
-  /** override the editor's border-radius (e.g. "50%" so a circle reads as a circle) */
-  borderRadius?: string;
   /** strip the border/background/shadow so editing looks like the plain text itself */
   chromeless?: boolean;
   /** select all existing text on open (so typing overwrites) instead of placing the caret at the end */
@@ -49,8 +51,9 @@ export class TextEditor {
       fontSize: `${opts.fontSize}px`,
       textAlign: opts.align ?? "center",
     });
+    if (opts.fontWeight != null) el.style.fontWeight = opts.fontWeight;
+    if (opts.lineHeight != null) el.style.lineHeight = `${opts.lineHeight}px`;
     if (opts.padding != null) el.style.padding = `${opts.padding}px`;
-    if (opts.borderRadius != null) el.style.borderRadius = opts.borderRadius;
     if (opts.chromeless) {
       el.style.border = "none";
       el.style.background = "transparent";

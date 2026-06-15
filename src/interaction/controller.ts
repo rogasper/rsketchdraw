@@ -7,6 +7,7 @@ import {
   resolveEdgeGeometry,
 } from "../render/geometry";
 import { scene } from "../render/scene";
+import { defaultLabelFont } from "../render/shapeView";
 import * as actions from "../state/actions";
 import { DEFAULT_SIZE } from "../state/actions";
 import { copySelection, cutSelection, pasteClipboard } from "../state/clipboard";
@@ -448,7 +449,13 @@ export class Controller {
       nx = world.x < fx ? fx - nw : fx;
     }
 
-    actions.updateShape(id, { x: nx, y: ny, w: nw, h: nh });
+    const patch: Partial<Shape> = { x: nx, y: ny, w: nw, h: nh };
+    // scale the label with the object (resizes are aspect-locked, so the scale is uniform)
+    if (s.text && s.h > 0) {
+      const base = s.fontSize ?? defaultLabelFont(s.kind);
+      patch.fontSize = Math.min(MAX_FONT, Math.max(MIN_FONT, base * (nh / s.h)));
+    }
+    actions.updateShape(id, patch);
   }
 
   /**
@@ -628,11 +635,12 @@ export class Controller {
     const zoom = this.zoom();
 
     if (s.kind === "text") {
-      // hide the rendered text so the chromeless editor below isn't doubled by it
-      scene.setNodeVisible(id, false);
+      const fontSize = s.fontSize ?? TEXT_FONT_SIZE;
+      // hide the rendered text so the chromeless editor isn't doubled by it
+      scene.setNodeLabelHidden(id, true);
       // grow-with-content editor that overlays the floating text
       const finish = (v: string) => {
-        scene.setNodeVisible(id, true);
+        scene.setNodeLabelHidden(id, false);
         actions.setShapeText(id, v);
         if (v.trim() === "") actions.deleteShape(id);
       };
@@ -644,7 +652,9 @@ export class Controller {
         value,
         color: s.fill,
         background: "transparent",
-        fontSize: (s.fontSize ?? TEXT_FONT_SIZE) * zoom,
+        fontSize: fontSize * zoom,
+        fontWeight: "600",
+        lineHeight: fontSize * 1.3 * zoom,
         align: "left",
         autoGrow: true,
         chromeless: true,
@@ -653,7 +663,7 @@ export class Controller {
         onInput: (v) => actions.setShapeText(id, v),
         onCommit: finish,
         onCancel: () => {
-          scene.setNodeVisible(id, true);
+          scene.setNodeLabelHidden(id, false);
           if (isNewText) actions.deleteShape(id);
           else actions.setShapeText(id, this.editOriginal);
         },
@@ -663,28 +673,46 @@ export class Controller {
     }
 
     if (s.kind === "icon" || s.kind === "image") {
-      // edit the label where it lives: beneath the object, in a light color
+      // edit the label in place beneath the object; hide the rendered label so it isn't doubled,
+      // and mirror its exact style so editing looks identical to the committed caption
+      scene.setNodeLabelHidden(id, true);
+      const restore = () => scene.setNodeLabelHidden(id, false);
       const w = Math.max(80, s.w * 1.5) * zoom;
+      const fontSize = s.fontSize ?? defaultLabelFont(s.kind);
       this.textEditor.open({
         x: tl.x + (s.w * zoom - w) / 2,
         y: tl.y + s.h * zoom + 6 * zoom,
         w,
-        h: 22 * zoom,
+        h: fontSize * 1.3 * zoom,
         value,
         color: "#e2e8f0",
-        background: "rgba(11,18,32,0.92)",
-        fontSize: 14 * zoom,
+        background: "transparent",
+        fontSize: fontSize * zoom,
+        fontWeight: "500",
+        lineHeight: fontSize * 1.3 * zoom,
         align: "center",
+        chromeless: true,
         selectAll: !seed,
+        padding: 0,
         onInput: (v) => actions.setShapeText(id, v),
-        onCommit: (v) => actions.setShapeText(id, v),
-        onCancel: () => actions.setShapeText(id, this.editOriginal),
+        onCommit: (v) => {
+          restore();
+          actions.setShapeText(id, v);
+        },
+        onCancel: () => {
+          restore();
+          actions.setShapeText(id, this.editOriginal);
+        },
       });
       if (seed) actions.setShapeText(id, value);
       return;
     }
 
-    // rect / circle: label is centered inside the shape; a circle gets a round editor
+    // rect / circle: label is centered inside the shape. Hide the rendered label and let the
+    // chromeless editor sit directly on the shape fill, mirroring the label's exact style.
+    scene.setNodeLabelHidden(id, true);
+    const restoreLabel = () => scene.setNodeLabelHidden(id, false);
+    const labelFont = s.fontSize ?? defaultLabelFont(s.kind);
     this.textEditor.open({
       x: tl.x,
       y: tl.y,
@@ -692,13 +720,22 @@ export class Controller {
       h: s.h * zoom,
       value,
       color: numToCss(readableText(s.fill)),
-      background: s.fill,
-      fontSize: 16 * zoom,
-      borderRadius: s.kind === "circle" ? "50%" : undefined,
+      background: "transparent",
+      fontSize: labelFont * zoom,
+      fontWeight: "500",
+      lineHeight: labelFont * 1.25 * zoom,
+      chromeless: true,
       selectAll: !seed,
+      padding: 8 * zoom,
       onInput: (v) => actions.setShapeText(id, v),
-      onCommit: (v) => actions.setShapeText(id, v),
-      onCancel: () => actions.setShapeText(id, this.editOriginal),
+      onCommit: (v) => {
+        restoreLabel();
+        actions.setShapeText(id, v);
+      },
+      onCancel: () => {
+        restoreLabel();
+        actions.setShapeText(id, this.editOriginal);
+      },
     });
     if (seed) actions.setShapeText(id, value);
   }
