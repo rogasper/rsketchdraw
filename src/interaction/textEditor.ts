@@ -70,9 +70,18 @@ export class TextEditor {
     }
     el.addEventListener("input", () => this.opts?.onInput(el.textContent ?? ""));
     el.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        // Cmd/Ctrl+Enter finishes editing, for keyboard users who don't want to
+        // click away to commit.
         e.preventDefault();
         this.commit();
+      } else if (e.key === "Enter") {
+        // Plain Enter inserts a newline so multi-line labels are easy to type —
+        // no Shift needed. The edit commits on blur (clicking away) or ⌘/Ctrl+↵.
+        // insertText keeps the native undo stack and writes a literal "\n" that
+        // round-trips through textContent under `white-space: pre-wrap`.
+        e.preventDefault();
+        document.execCommand("insertText", false, "\n");
       } else if (e.key === "Escape") {
         e.preventDefault();
         this.cancel();

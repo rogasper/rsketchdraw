@@ -216,14 +216,38 @@ export function hexToNumber(hex: string): number {
   return parseInt(hex, 16) || 0;
 }
 
-/** Pick a readable text color (dark or light) for a given background hex. */
+/** Label colors paired with fills; their luminance is precomputed below. */
+const TEXT_DARK = 0x0f172a;
+const TEXT_LIGHT = 0xf1f5f9;
+
+/** WCAG relative luminance of a 0xRRGGBB color (sRGB → linear, Rec. 709 weights). */
+function relativeLuminance(n: number): number {
+  const channel = (c: number): number => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return (
+    0.2126 * channel((n >> 16) & 0xff) +
+    0.7152 * channel((n >> 8) & 0xff) +
+    0.0722 * channel(n & 0xff)
+  );
+}
+
+const L_TEXT_DARK = relativeLuminance(TEXT_DARK);
+const L_TEXT_LIGHT = relativeLuminance(TEXT_LIGHT);
+
+function contrast(lA: number, lB: number): number {
+  return (Math.max(lA, lB) + 0.05) / (Math.min(lA, lB) + 0.05);
+}
+
+/**
+ * Pick the label color (dark or light) with the HIGHER WCAG contrast over the
+ * given background, so every fill — preset or custom — gets the most readable
+ * text rather than relying on a luminance threshold that can mis-pick mid-tones.
+ */
 export function readableText(bgHex: string): number {
   // a transparent fill shows the dark canvas behind it, so labels read light
-  if (bgHex === NO_FILL) return 0xf1f5f9;
-  const n = hexToNumber(bgHex);
-  const r = (n >> 16) & 0xff;
-  const g = (n >> 8) & 0xff;
-  const b = n & 0xff;
-  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return lum > 0.6 ? 0x0f172a : 0xf1f5f9;
+  if (bgHex === NO_FILL) return TEXT_LIGHT;
+  const bg = relativeLuminance(hexToNumber(bgHex));
+  return contrast(bg, L_TEXT_DARK) >= contrast(bg, L_TEXT_LIGHT) ? TEXT_DARK : TEXT_LIGHT;
 }

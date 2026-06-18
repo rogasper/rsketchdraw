@@ -2,23 +2,26 @@ import { NO_FILL } from "../render/geometry";
 import { h } from "./dom";
 
 /**
- * A curated palette of 12 colors that read well as both fills and outlines on
- * the dark canvas — a neutral trio (light / slate / ink) plus nine vibrant hues
- * spanning the wheel. Kept in sync with the swatch grid below.
+ * A curated palette of 12 fills spanning dark→light, each verified to reach WCAG
+ * AAA (≥7:1) against its auto-chosen label color (see `readableText`): six dark
+ * tones that take light text and six light tones that take dark text. The first
+ * entry (`#0f2740`) is the default fill so it shows as selected out of the box.
  */
 export const SWATCH_COLORS = [
+  // dark fills — render with light labels
+  "#0f2740", // navy (default fill)
+  "#1e293b", // slate
+  "#0c4a6e", // ocean
+  "#7f1d1d", // crimson
+  "#14532d", // forest
+  "#5b21b6", // violet
+  // light fills — render with dark labels
   "#e2e8f0", // light
-  "#94a3b8", // slate
-  "#1e293b", // ink
-  "#f87171", // red
-  "#fb923c", // orange
   "#fbbf24", // amber
+  "#fb923c", // orange
   "#4ade80", // green
-  "#2dd4bf", // teal
   "#38bdf8", // sky
-  "#818cf8", // indigo
-  "#c084fc", // purple
-  "#f472b6", // pink
+  "#f9a8d4", // pink
 ];
 
 export interface SwatchPicker {

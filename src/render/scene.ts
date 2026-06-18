@@ -147,8 +147,11 @@ class Scene {
     this.edgeViews.set(id, view);
     this.itemLayer.addChild(view.container);
     this.registerAdj(id, e.from, e.to);
-    // a new parallel edge changes how its siblings fan, so refresh them too
-    for (const sid of this.pairEdges(e.from, e.to)) this.refreshEdge(sid);
+    // always draw the new edge itself — `pairEdges` is empty for free / half-
+    // anchored edges (an undefined end), so it can't be relied on to do it.
+    this.refreshEdge(id);
+    // a new parallel edge changes how its shape-pair siblings fan, so refresh them too
+    for (const sid of this.pairEdges(e.from, e.to)) if (sid !== id) this.refreshEdge(sid);
     this.requestRender();
   }
 
