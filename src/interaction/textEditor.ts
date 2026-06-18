@@ -24,9 +24,14 @@ export interface TextEditOptions {
   onCancel: () => void;
 }
 
-/** A single contenteditable overlay used for shape text and edge labels. */
+/** A contenteditable overlay used for shape text and edge labels. */
 export class TextEditor {
+  /** outer wrapper — owns positioning, sizing, chrome, and flex centering */
   private el: HTMLDivElement | null = null;
+  /** inner contenteditable — MUST be display:block so Enter can insert newlines.
+   *  A contenteditable that is itself a flex container can't create new lines in
+   *  Chromium/WebKit, so the flex centering lives on the wrapper, never here. */
+  private input: HTMLDivElement | null = null;
   private opts: TextEditOptions | null = null;
 
   constructor(private root: HTMLElement) {}
@@ -38,22 +43,15 @@ export class TextEditor {
   open(opts: TextEditOptions): void {
     this.remove();
     this.opts = opts;
+
     const el = document.createElement("div");
     el.className = "text-editor";
-    el.contentEditable = "true";
-    el.textContent = opts.value;
     Object.assign(el.style, {
       left: `${opts.x}px`,
       top: `${opts.y}px`,
       minHeight: `${opts.h}px`,
-      color: opts.color,
       background: opts.background,
-      fontSize: `${opts.fontSize}px`,
-      textAlign: opts.align ?? "center",
     });
-    if (opts.fontWeight != null) el.style.fontWeight = opts.fontWeight;
-    if (opts.lineHeight != null) el.style.lineHeight = `${opts.lineHeight}px`;
-    if (opts.padding != null) el.style.padding = `${opts.padding}px`;
     if (opts.chromeless) {
       el.style.border = "none";
       el.style.background = "transparent";
@@ -61,15 +59,36 @@ export class TextEditor {
       el.style.borderRadius = "0";
     }
     if (opts.autoGrow) {
+      // grow with content: drop the flex centering so the inner block flows
+      // from the top-left and the wrapper hugs it.
       el.style.display = "block";
-      el.style.whiteSpace = "pre";
       el.style.width = "auto";
       el.style.minWidth = "8px";
     } else {
       el.style.width = `${opts.w}px`;
     }
-    el.addEventListener("input", () => this.opts?.onInput(el.textContent ?? ""));
-    el.addEventListener("keydown", (e) => {
+
+    const input = document.createElement("div");
+    input.className = "text-editor__input";
+    input.contentEditable = "true";
+    input.textContent = opts.value;
+    Object.assign(input.style, {
+      color: opts.color,
+      fontSize: `${opts.fontSize}px`,
+      textAlign: opts.align ?? "center",
+    });
+    if (opts.fontWeight != null) input.style.fontWeight = opts.fontWeight;
+    if (opts.lineHeight != null) input.style.lineHeight = `${opts.lineHeight}px`;
+    if (opts.padding != null) input.style.padding = `${opts.padding}px`;
+    // autoGrow: keep everything on one line and grow horizontally (no wrap)
+    if (opts.autoGrow) input.style.whiteSpace = "pre";
+
+    // Read with innerText, not textContent: pressing Enter makes the browser
+    // store the break as a <br>/<div> element, which textContent drops (it just
+    // concatenates text nodes) — innerText renders those boundaries back to "\n"
+    // so multi-line labels survive both the live preview and commit.
+    input.addEventListener("input", () => this.opts?.onInput(input.innerText));
+    input.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
         // Cmd/Ctrl+Enter finishes editing, for keyboard users who don't want to
         // click away to commit.
@@ -88,22 +107,25 @@ export class TextEditor {
       }
       e.stopPropagation();
     });
-    el.addEventListener("blur", () => this.commit());
-    el.addEventListener("pointerdown", (e) => e.stopPropagation());
+    input.addEventListener("blur", () => this.commit());
     // Keep clicks inside the editor from reaching the canvas, which would
     // hit-test the shape and re-open editing — wiping the browser's native
     // double-click-to-select-word (and triple-click-to-select-all). We only
     // stop propagation, never preventDefault, so the native selection stands.
+    el.addEventListener("pointerdown", (e) => e.stopPropagation());
     el.addEventListener("click", (e) => e.stopPropagation());
     el.addEventListener("dblclick", (e) => e.stopPropagation());
+
+    el.appendChild(input);
     this.root.appendChild(el);
     this.el = el;
+    this.input = input;
     requestAnimationFrame(() => {
-      el.focus();
+      input.focus();
       const sel = window.getSelection();
       if (sel) {
         const r = document.createRange();
-        r.selectNodeContents(el);
+        r.selectNodeContents(input);
         if (!opts.selectAll) r.collapse(false); // caret at end unless we want everything selected
         sel.removeAllRanges();
         sel.addRange(r);
@@ -112,15 +134,17 @@ export class TextEditor {
   }
 
   commit(): void {
-    if (!this.el || !this.opts) return;
-    const v = this.el.textContent ?? "";
+    if (!this.input || !this.opts) return;
+    // innerText (not textContent) so <br>/<div> line breaks become "\n" — see the
+    // input listener in open() for why textContent would flatten to one line.
+    const v = this.input.innerText;
     const cb = this.opts.onCommit;
     this.remove();
     cb(v);
   }
 
   private cancel(): void {
-    if (!this.el || !this.opts) return;
+    if (!this.input || !this.opts) return;
     const cb = this.opts.onCancel;
     this.remove();
     cb();
@@ -132,6 +156,7 @@ export class TextEditor {
     // re-entrant call a no-op instead of trying to detach an already-removed node.
     const el = this.el;
     this.el = null;
+    this.input = null;
     this.opts = null;
     el?.remove();
   }

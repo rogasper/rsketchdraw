@@ -340,22 +340,31 @@ button {
   position: absolute;
   z-index: 50;
   /* flex (not grid) so the caret stays vertically centered even when empty —
-     a grid container has no item to center until the first character is typed */
+     a grid container has no item to center until the first character is typed.
+     The flex container is the WRAPPER, never the editable child: a contenteditable
+     that is itself a flex item can't insert newlines on Enter (Chromium/WebKit). */
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
   /* match the PixiJS-rendered label font exactly so editing looks identical */
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  padding: 4px 6px;
   border-radius: 8px;
   border: 2px solid var(--accent);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   caret-color: var(--accent);
+  overflow: hidden;
+}
+
+/* the actual editable: a plain block so Enter creates real newlines */
+.text-editor__input {
+  display: block;
+  max-width: 100%;
+  padding: 4px 6px;
   line-height: 1.25;
+  text-align: center;
   white-space: pre-wrap;
   word-break: break-word;
-  overflow: hidden;
+  caret-color: inherit;
   outline: none;
 }
 
