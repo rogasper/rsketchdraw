@@ -9,34 +9,105 @@ export function center(s: Shape): Pt {
   return { x: s.x + s.w / 2, y: s.y + s.h / 2 };
 }
 
+/** Transform a world point to the shape's local coordinate space (top-left at 0,0, rotation removed). */
+export function worldToLocal(s: Shape, p: Pt): Pt {
+  const c = center(s);
+  const angle = -(s.rotation ?? 0);
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const dx = p.x - c.x;
+  const dy = p.y - c.y;
+  return {
+    x: dx * cos - dy * sin + s.w / 2,
+    y: dx * sin + dy * cos + s.h / 2,
+  };
+}
+
+/** Transform a shape-local point back to world space. */
+export function localToWorld(s: Shape, lp: Pt): Pt {
+  const c = center(s);
+  const angle = s.rotation ?? 0;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const dx = lp.x - s.w / 2;
+  const dy = lp.y - s.h / 2;
+  return {
+    x: c.x + dx * cos - dy * sin,
+    y: c.y + dx * sin + dy * cos,
+  };
+}
+
 /** Point on the shape's outline along the ray from its center toward `target`. */
 export function boundaryPoint(s: Shape, target: Pt): Pt {
   const c = center(s);
   const dx = target.x - c.x;
   const dy = target.y - c.y;
   if (dx === 0 && dy === 0) return c;
+  const rot = s.rotation ?? 0;
+
   if (s.kind === "circle") {
     const rx = s.w / 2;
     const ry = s.h / 2;
     const t = 1 / Math.sqrt((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry));
     return { x: c.x + dx * t, y: c.y + dy * t };
   }
-  // rect / icon: intersect ray with the half-extent box
-  const hw = s.w / 2;
-  const hh = s.h / 2;
-  const tx = dx !== 0 ? hw / Math.abs(dx) : Infinity;
-  const ty = dy !== 0 ? hh / Math.abs(dy) : Infinity;
-  const t = Math.min(tx, ty);
-  return { x: c.x + dx * t, y: c.y + dy * t };
+
+  const lt = (ldx: number, ldy: number): Pt => {
+    const hw = s.w / 2;
+    const hh = s.h / 2;
+    const t = Math.min(
+      ldx !== 0 ? hw / Math.abs(ldx) : Infinity,
+      ldy !== 0 ? hh / Math.abs(ldy) : Infinity,
+    );
+    const lc = s.kind === "triangle" ? { x: s.w / 2, y: s.h / 2 + s.h * 0.08 } : { x: s.w / 2, y: s.h / 2 };
+    return { x: lc.x + ldx * t, y: lc.y + ldy * t };
+  };
+
+  if (rot !== 0) {
+    const cos = Math.cos(-rot);
+    const sin = Math.sin(-rot);
+    const ldx = dx * cos - dy * sin;
+    const ldy = dx * sin + dy * cos;
+    const lp = lt(ldx, ldy);
+    const cos2 = Math.cos(rot);
+    const sin2 = Math.sin(rot);
+    const wdx = lp.x - s.w / 2;
+    const wdy = lp.y - s.h / 2;
+    return { x: c.x + wdx * cos2 - wdy * sin2, y: c.y + wdx * sin2 + wdy * cos2 };
+  }
+
+  const lp = lt(dx, dy);
+  return { x: c.x + lp.x - s.w / 2, y: c.y + lp.y - s.h / 2 };
+}
+
+function pointInTriangle(px: number, py: number, ax: number, ay: number, bx: number, by: number, cx: number, cy: number): boolean {
+  const d1 = cross({ x: px, y: py }, { x: ax, y: ay }, { x: bx, y: by });
+  const d2 = cross({ x: px, y: py }, { x: bx, y: by }, { x: cx, y: cy });
+  const d3 = cross({ x: px, y: py }, { x: cx, y: cy }, { x: ax, y: ay });
+  const hasNeg = d1 < 0 || d2 < 0 || d3 < 0;
+  const hasPos = d1 > 0 || d2 > 0 || d3 > 0;
+  return !(hasNeg && hasPos);
 }
 
 export function pointInShape(s: Shape, p: Pt): boolean {
+  const rot = s.rotation ?? 0;
+  if (rot !== 0) {
+    const lp = worldToLocal(s, p);
+    const tmp: Shape = { ...s, x: 0, y: 0, rotation: 0 };
+    return pointInShape(tmp, lp);
+  }
   if (s.kind === "circle") {
     const rx = s.w / 2;
     const ry = s.h / 2;
     const nx = (p.x - (s.x + rx)) / rx;
     const ny = (p.y - (s.y + ry)) / ry;
     return nx * nx + ny * ny <= 1;
+  }
+  if (s.kind === "triangle") {
+    const bx = s.x, by = s.y + s.h;
+    const tx = s.x + s.w / 2, ty = s.y;
+    const cx = s.x + s.w, cy = s.y + s.h;
+    return pointInTriangle(p.x, p.y, bx, by, tx, ty, cx, cy);
   }
   return p.x >= s.x && p.x <= s.x + s.w && p.y >= s.y && p.y <= s.y + s.h;
 }

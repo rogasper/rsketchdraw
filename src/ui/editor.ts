@@ -39,6 +39,7 @@ const ICON_SELECT = svg('<path d="M5 3l13.5 7-5.8 1.5L9.5 20z" fill="currentColo
 const ICON_TEXT = svg('<path d="M6 6h12"/><path d="M12 6v12"/>');
 const ICON_RECT = svg('<rect x="4" y="6.5" width="16" height="11" rx="2"/>');
 const ICON_CIRCLE = svg('<circle cx="12" cy="12" r="7.5"/>');
+const ICON_TRIANGLE = svg('<path d="M12 3.5l7.5 16H4.5z"/>');
 const ICON_LINE = svg('<path d="M6.5 17.5 17.5 6.5"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/>');
 const ICON_ARROW = svg('<path d="M5 19 16.5 7.5"/><path d="M16.5 7.5 13.7 14.2"/><path d="M16.5 7.5 9.8 10.3"/>');
 const ICON_HAND = svg(
@@ -56,6 +57,7 @@ const TOOLS: Array<{ tool: ToolName; icon: string; key: string; title: string }>
   { tool: "text", icon: ICON_TEXT, key: "T", title: "Text (T) — or double-click the canvas" },
   { tool: "rect", icon: ICON_RECT, key: "R", title: "Rectangle (R)" },
   { tool: "circle", icon: ICON_CIRCLE, key: "O", title: "Circle (O)" },
+  { tool: "triangle", icon: ICON_TRIANGLE, key: "G", title: "Triangle (G)" },
   { tool: "line", icon: ICON_LINE, key: "L", title: "Connector line (L)" },
   { tool: "arrow", icon: ICON_ARROW, key: "A", title: "Arrow / directed edge (A)" },
   { tool: "hand", icon: ICON_HAND, key: "M", title: "Move / pan (M or space-drag)" },
@@ -265,6 +267,24 @@ export async function mountEditor(
     picker.toggle();
   };
 
+  // ---- corner radius segmented control ----
+  const CORNER_RADII = [0, 4, 8, 12, 16];
+  const CORNER_LABELS = ["□", "▢", "◻", "◰", "◉"];
+  const cornerBtns = CORNER_RADII.map((r, i) =>
+    h("button", {
+      class: "seg__btn",
+      title: `Corner radius: ${r}px`,
+      onclick: () => {
+        const sel = $selection.get();
+        for (const id of sel.shapes) {
+          const s = doc.board.shapes[id];
+          if (s?.kind === "rect") actions.updateShape(id, { cornerRadius: r || undefined });
+        }
+      },
+    }, CORNER_LABELS[i]),
+  );
+  const cornerSeg = h("div", { class: "seg" }, ...cornerBtns);
+
   const deleteBtn = h(
     "button",
     { class: "btn btn--danger", title: "Delete selection (⌫)", onclick: () => actions.deleteSelection() },
@@ -346,9 +366,11 @@ export async function mountEditor(
       strokePicker.el,
       h("kbd", { class: "field__key", title: "Press u to open" }, "u"),
     ),
+    h("div", { class: "field field--corners", style: { display: "none" } }, h("span", null, "Corner"), cornerSeg),
     deleteBtn,
   );
 
+  const cornerField = stylePanel.querySelector(".field--corners") as HTMLElement;
   const syncStyle = () => {
     const sel = $selection.get();
     const firstShape = [...sel.shapes].map((id) => doc.board.shapes[id]).find(Boolean);
@@ -367,6 +389,14 @@ export async function mountEditor(
     deleteBtn.toggleAttribute("disabled", !hasSel);
     stylePanel.classList.toggle("style-panel--editing", hasSel);
     syncFont();
+
+    const isRectSel = firstShape?.kind === "rect";
+    cornerField.style.display = isRectSel ? "" : "none";
+    if (isRectSel) {
+      const r = firstShape.cornerRadius ?? 0;
+      const idx = r === 0 ? 0 : CORNER_RADII.indexOf(r);
+      cornerBtns.forEach((b, i) => b.classList.toggle("is-active", i === idx));
+    }
   };
   unsubs.push($selection.subscribe(syncStyle));
 

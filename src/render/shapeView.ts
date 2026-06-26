@@ -38,7 +38,7 @@ export interface NodeView {
 }
 
 function styleKeyOf(s: Shape): string {
-  return `${s.kind}|${s.w}|${s.h}|${s.fill}|${s.stroke}|${s.icon ?? ""}|${s.src ?? ""}`;
+  return `${s.kind}|${s.w}|${s.h}|${s.fill}|${s.stroke}|${s.icon ?? ""}|${s.src ?? ""}|${s.cornerRadius ?? ""}`;
 }
 function textKeyOf(s: Shape): string {
   // key on the EFFECTIVE size (not raw fontSize) so a board-wide scale change
@@ -104,7 +104,9 @@ export function createNodeView(s: Shape, onReady?: () => void): NodeView {
 }
 
 export function updateNodeView(view: NodeView, s: Shape, onReady?: () => void): void {
-  view.container.position.set(s.x, s.y);
+  view.container.position.set(s.x + s.w / 2, s.y + s.h / 2);
+  view.container.pivot.set(s.w / 2, s.h / 2);
+  view.container.rotation = s.rotation ?? 0;
   const sk = styleKeyOf(s);
   if (sk !== view.styleKey) {
     view.styleKey = sk;
@@ -124,11 +126,16 @@ function drawShape(g: Graphics, s: Shape): void {
   const fill = hexToNumber(s.fill);
   const stroke = hexToNumber(s.stroke);
   if (s.kind === "rect") {
-    g.roundRect(0, 0, s.w, s.h, Math.min(10, Math.min(s.w, s.h) * 0.12));
+    const r = s.cornerRadius ?? Math.min(10, Math.min(s.w, s.h) * 0.12);
+    g.roundRect(0, 0, s.w, s.h, r);
     if (!transparent) g.fill(fill);
     g.stroke({ width: 2, color: stroke, alignment: 0.5 });
   } else if (s.kind === "circle") {
     g.ellipse(s.w / 2, s.h / 2, s.w / 2, s.h / 2);
+    if (!transparent) g.fill(fill);
+    g.stroke({ width: 2, color: stroke, alignment: 0.5 });
+  } else if (s.kind === "triangle") {
+    g.poly([0, s.h, s.w / 2, 0, s.w, s.h]);
     if (!transparent) g.fill(fill);
     g.stroke({ width: 2, color: stroke, alignment: 0.5 });
   } else if (s.kind === "image") {

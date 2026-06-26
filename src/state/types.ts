@@ -1,6 +1,6 @@
 export type ID = string;
 
-export type ShapeKind = "rect" | "circle" | "icon" | "image" | "text";
+export type ShapeKind = "rect" | "circle" | "icon" | "image" | "text" | "triangle";
 
 export interface Shape {
   id: ID;
@@ -23,6 +23,10 @@ export interface Shape {
   /** id of the group this shape belongs to; undefined when ungrouped. Members of a
    *  group select, move, and delete together (Cmd+G / Cmd+U). */
   group?: ID;
+  /** corner radius for rect shapes; undefined → auto (12% of smaller dim, max 10) */
+  cornerRadius?: number;
+  /** rotation in radians, around the shape's center; 0 / undefined = axis-aligned */
+  rotation?: number;
 }
 
 export interface Edge {
@@ -86,6 +90,7 @@ export type ToolName =
   | "text"
   | "rect"
   | "circle"
+  | "triangle"
   | "line"
   | "arrow"
   | "hand";

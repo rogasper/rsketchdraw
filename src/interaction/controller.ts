@@ -1,6 +1,7 @@
 import type { Graphics } from "pixi.js";
 import {
   boundaryPoint,
+  center,
   edgeBendHandle,
   type Pt,
   quadPoints,
@@ -39,15 +40,17 @@ const MOVE_THRESHOLD = 3;
 const MIN_SIZE = 16;
 
 // handle indices: 0 tl, 1 top, 2 tr, 3 right, 4 br, 5 bottom, 6 bl, 7 left
-const RESIZE_CURSORS = [
-  "nwse-resize",
-  "ns-resize",
-  "nesw-resize",
-  "ew-resize",
-  "nwse-resize",
-  "ns-resize",
-  "nesw-resize",
-  "ew-resize",
+// corners (0,2,4,6) = resize by default, rotate while holding Alt/Option
+// edges (1,3,5,7) = always resize
+const HANDLE_CURSORS = [
+  "nwse-resize",  // 0 tl
+  "ns-resize",    // 1 top
+  "nesw-resize",  // 2 tr
+  "ew-resize",    // 3 right
+  "nwse-resize",  // 4 br
+  "ns-resize",    // 5 bottom
+  "nesw-resize",  // 6 bl
+  "ew-resize",    // 7 left
 ];
 
 type Gesture =
@@ -55,7 +58,7 @@ type Gesture =
   | { kind: "pan"; lastX: number; lastY: number }
   | {
       kind: "create";
-      tool: "rect" | "circle";
+      tool: "rect" | "circle" | "triangle";
       sx: number;
       sy: number;
       cx: number;
@@ -83,13 +86,23 @@ type Gesture =
     }
   | { kind: "edgeCtrl"; id: ID }
   | { kind: "edgeEnd"; id: ID; end: "from" | "to" }
-  | { kind: "resize"; id: ID; handle: number; aspect: number };
+  | { kind: "resize"; id: ID; handle: number; aspect: number }
+  | {
+      kind: "rotate";
+      id: ID;
+      centerX: number;
+      centerY: number;
+      scx: number;
+      scy: number;
+      startAngle: number;
+      startRotation: number;
+    };
 
 function numToCss(n: number): string {
   return "#" + n.toString(16).padStart(6, "0");
 }
 
-/** True when focus is in a real input/textarea/contenteditable (let the browser handle keys). */
+  /** True when focus is in a real input/textarea/contenteditable (let the browser handle keys). */
 function isEditingDom(): boolean {
   const el = document.activeElement as HTMLElement | null;
   return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
@@ -200,8 +213,9 @@ export class Controller {
     let c = "default";
     if (this.spaceDown || tool === "hand") c = "grab";
     else if (tool === "text") c = "text";
-    else if (tool === "rect" || tool === "circle" || tool === "line" || tool === "arrow")
+    else if (tool === "rect" || tool === "circle" || tool === "triangle" || tool === "line" || tool === "arrow")
       c = "crosshair";
+    this.root.classList.remove("cursor-rotate");
     this.root.style.cursor = c;
   }
 
@@ -295,7 +309,7 @@ export class Controller {
       return;
     }
 
-    if (tool === "rect" || tool === "circle") {
+    if (tool === "rect" || tool === "circle" || tool === "triangle") {
       this.gesture = { kind: "create", tool, sx: p.x, sy: p.y, cx: p.x, cy: p.y, square: e.shiftKey };
       scene.requestRender();
       return;
@@ -321,7 +335,25 @@ export class Controller {
     if (single) {
       const handle = this.hitHandle(single, p);
       if (handle >= 0) {
-        this.gesture = { kind: "resize", id: single.id, handle, aspect: this.aspectOf(single) };
+        if (handle % 2 === 0 && e.altKey) {
+          // corner + Alt/Option → rotate
+          const c = center(single);
+          const mc = worldToScreen(c.x, c.y);
+          const startAngle = Math.atan2(p.y - mc.y, p.x - mc.x);
+          this.gesture = {
+            kind: "rotate",
+            id: single.id,
+            centerX: c.x,
+            centerY: c.y,
+            scx: mc.x,
+            scy: mc.y,
+            startAngle,
+            startRotation: single.rotation ?? 0,
+          };
+        } else {
+          // default: edge or corner → resize
+          this.gesture = { kind: "resize", id: single.id, handle, aspect: this.aspectOf(single) };
+        }
         return;
       }
     }
@@ -409,7 +441,7 @@ export class Controller {
     const g = this.gesture;
     const p = this.local(e);
     if (g.kind === "none") {
-      this.updateHoverCursor(p);
+      this.updateHoverCursor(p, e.altKey);
       return;
     }
     const world = screenToWorld(p.x, p.y);
@@ -464,15 +496,31 @@ export class Controller {
         else this.applyResize(g.id, g.handle, g.aspect, world, e.shiftKey);
         break;
       }
+      case "rotate": {
+        const curAngle = Math.atan2(p.y - g.scy, p.x - g.scx);
+        actions.updateShape(g.id, { rotation: g.startRotation + curAngle - g.startAngle });
+        break;
+      }
     }
   };
 
-  /** Show resize cursors when hovering a handle of the single selected shape. */
-  private updateHoverCursor(p: Pt): void {
+  /** Show resize/rotate cursors when hovering a handle of the single selected shape. */
+  private updateHoverCursor(p: Pt, altKey = false): void {
     if ($tool.get() !== "select" || this.spaceDown) return;
     const single = this.singleSelectedShape();
     const handle = single ? this.hitHandle(single, p) : -1;
-    this.root.style.cursor = handle >= 0 ? RESIZE_CURSORS[handle] : "default";
+    if (handle >= 0) {
+      if (handle % 2 === 0 && altKey) {
+        this.root.classList.add("cursor-rotate");
+        this.root.style.cursor = "";
+      } else {
+        this.root.classList.remove("cursor-rotate");
+        this.root.style.cursor = HANDLE_CURSORS[handle];
+      }
+    } else {
+      this.root.classList.remove("cursor-rotate");
+      this.root.style.cursor = "default";
+    }
   }
 
   private onPointerUp = (e: PointerEvent): void => {
@@ -844,6 +892,7 @@ export class Controller {
       if (k === "t") return void $tool.set("text");
       if (k === "r") return void $tool.set("rect");
       if (k === "o") return void $tool.set("circle");
+      if (k === "g") return void $tool.set("triangle");
       if (k === "l") return void $tool.set("line");
       if (k === "a") return void $tool.set("arrow");
       if (k === "m") return void $tool.set("hand");
@@ -1190,6 +1239,7 @@ export class Controller {
     } else if (gest.kind === "create") {
       const b = dragBox(gest.sx, gest.sy, gest.cx, gest.cy, gest.square);
       if (gest.tool === "circle") g.ellipse(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, b.h / 2);
+      else if (gest.tool === "triangle") g.poly([b.x, b.y + b.h, b.x + b.w / 2, b.y, b.x + b.w, b.y + b.h]);
       else g.roundRect(b.x, b.y, b.w, b.h, 4);
       g.fill({ color: ACCENT, alpha: 0.1 });
       g.stroke({ width: 1.5, color: ACCENT });
