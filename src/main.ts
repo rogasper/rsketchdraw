@@ -3,6 +3,8 @@ import { loadBoardById } from "./persistence/db";
 import { decodeBoard } from "./persistence/share";
 import { mountDashboard } from "./ui/dashboard";
 import { mountEditor, type MountedView } from "./ui/editor";
+import { $theme, $style, defaultStyle, type Theme } from "./state/store";
+import { recolorForTheme } from "./state/actions";
 
 const app = document.getElementById("app") as HTMLElement;
 
@@ -56,6 +58,19 @@ async function render(): Promise<void> {
     }
   }
 }
+
+function applyTheme(theme: Theme): void {
+  document.documentElement.setAttribute("data-theme", theme);
+  $style.set(defaultStyle(theme));
+  recolorForTheme(theme);
+}
+const savedTheme = (localStorage.getItem("sketchlab-theme") as Theme | null) ?? "dark";
+$theme.set(savedTheme);
+applyTheme(savedTheme);
+$theme.subscribe((t) => {
+  localStorage.setItem("sketchlab-theme", t);
+  applyTheme(t);
+});
 
 window.addEventListener("hashchange", () => void render());
 void render();

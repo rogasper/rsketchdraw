@@ -265,8 +265,8 @@ export function hexToNumber(hex: string): number {
 }
 
 /** Label colors paired with fills; their luminance is precomputed below. */
-const TEXT_DARK = 0x0f172a;
-const TEXT_LIGHT = 0xf1f5f9;
+export const TEXT_DARK = 0x0f172a;
+export const TEXT_LIGHT = 0xf1f5f9;
 
 /** WCAG relative luminance of a 0xRRGGBB color (sRGB → linear, Rec. 709 weights). */
 function relativeLuminance(n: number): number {
@@ -293,9 +293,13 @@ function contrast(lA: number, lB: number): number {
  * given background, so every fill — preset or custom — gets the most readable
  * text rather than relying on a luminance threshold that can mis-pick mid-tones.
  */
+export function canvasLabelColor(): number {
+  const root = document.documentElement;
+  return root.getAttribute("data-theme") === "light" ? TEXT_DARK : TEXT_LIGHT;
+}
+
 export function readableText(bgHex: string): number {
-  // a transparent fill shows the dark canvas behind it, so labels read light
-  if (bgHex === NO_FILL) return TEXT_LIGHT;
+  if (bgHex === NO_FILL) return canvasLabelColor();
   const bg = relativeLuminance(hexToNumber(bgHex));
   return contrast(bg, L_TEXT_DARK) >= contrast(bg, L_TEXT_LIGHT) ? TEXT_DARK : TEXT_LIGHT;
 }

@@ -9,7 +9,7 @@ import { effectiveEdgeFontSize } from "../render/edgeView";
 import { effectiveFontSize } from "../render/shapeView";
 import * as actions from "../state/actions";
 import { $canRedo, $canUndo, disposeHistory, initHistory, redo, undo } from "../state/history";
-import { $camera, $revision, $selection, $style, $tool, doc } from "../state/store";
+import { $camera, $revision, $selection, $style, $theme, $tool, doc, type Theme } from "../state/store";
 import type { Board, Camera, ToolName } from "../state/types";
 import { clear, h, toast } from "./dom";
 import { navigate } from "./nav";
@@ -184,6 +184,19 @@ export async function mountEditor(
     html: GITHUB_ICON,
   });
 
+  const themeBtn = h("button", {
+    class: "btn btn--icon",
+    title: "Toggle theme",
+    onclick: () => $theme.set($theme.get() === "dark" ? "light" : "dark"),
+  });
+  const syncTheme = (t: Theme) => {
+    themeBtn.innerHTML = t === "dark"
+      ? svg('<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>')
+      : svg('<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>');
+  };
+  syncTheme($theme.get());
+  unsubs.push($theme.subscribe(syncTheme));
+
   const topbar = h(
     "header",
     { class: "topbar" },
@@ -193,6 +206,7 @@ export async function mountEditor(
     h("div", { class: "topbar__spacer" }),
     saveCopyBtn,
     githubLink,
+    themeBtn,
     shareBtn,
   );
 

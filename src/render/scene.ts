@@ -307,7 +307,10 @@ class Scene {
       c.height = th;
       const ctx = c.getContext("2d");
       if (!ctx) return undefined;
-      ctx.fillStyle = "#0b1220";
+      const canvasBg = getComputedStyle(document.documentElement)
+        .getPropertyValue("--canvas-bg")
+        .trim() || "#0b1220";
+      ctx.fillStyle = canvasBg;
       ctx.fillRect(0, 0, tw, th);
       ctx.drawImage(src, 0, 0, tw, th);
       return c.toDataURL("image/jpeg", 0.5);

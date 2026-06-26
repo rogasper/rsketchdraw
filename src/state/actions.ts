@@ -9,8 +9,10 @@ import {
   $selection,
   $style,
   bumpRevision,
+  defaultStyle,
   doc,
   setSelection,
+  type Theme,
 } from "./store";
 import type { Board, Edge, ID, Shape, ShapeKind } from "./types";
 
@@ -385,6 +387,33 @@ export function updateEdge(id: ID, patch: Partial<Edge>): void {
 
 export function setEdgeLabel(id: ID, label: string): void {
   updateEdge(id, { label });
+}
+
+export function recolorForTheme(theme: Theme): void {
+  const isDark = theme === "dark";
+  const prev = defaultStyle(isDark ? "light" : "dark");
+  const next = defaultStyle(theme);
+  let changed = false;
+  for (const s of Object.values(doc.board.shapes)) {
+    if (s.fill === prev.fill) {
+      s.fill = next.fill;
+      scene.updateNode(s.id);
+      changed = true;
+    }
+    if (s.stroke === prev.stroke) {
+      s.stroke = next.stroke;
+      scene.updateNode(s.id);
+      changed = true;
+    }
+  }
+  for (const e of Object.values(doc.board.edges)) {
+    if (e.stroke === prev.stroke) {
+      e.stroke = next.stroke;
+      scene.updateEdge(e.id);
+      changed = true;
+    }
+  }
+  if (changed) bumpRevision();
 }
 
 export function deleteSelection(): void {

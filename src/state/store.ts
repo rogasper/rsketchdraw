@@ -35,6 +35,15 @@ export const $style = atom<{ fill: string; stroke: string }>({
 /** Transient hint text shown in the status bar. */
 export const $status = atom("");
 
+export type Theme = "dark" | "light";
+export const $theme = atom<Theme>("dark");
+
+export function defaultStyle(theme: Theme): { fill: string; stroke: string } {
+  return theme === "dark"
+    ? { fill: "#0f2740", stroke: "#38bdf8" }
+    : { fill: "#e2e8f0", stroke: "#475569" };
+}
+
 export function bumpRevision(): void {
   $revision.set($revision.get() + 1);
 }

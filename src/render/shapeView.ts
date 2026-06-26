@@ -10,7 +10,7 @@ import {
 import type { Shape } from "../state/types";
 import { doc } from "../state/store";
 import { DEFAULT_FONT_SIZE } from "./fontPresets";
-import { hexToNumber, NO_FILL, readableText } from "./geometry";
+import { canvasLabelColor, hexToNumber, NO_FILL, readableText } from "./geometry";
 import { drawIcon } from "./icons";
 import { TEXT_PAD } from "./measure";
 
@@ -56,19 +56,17 @@ function textStyle(s: Shape): TextStyleOptions {
       fontFamily: FONT,
       fontSize,
       fontWeight: "600",
-      // a text object's fill IS its glyph color; transparent would hide it, so fall back to light
-      fill: s.fill === NO_FILL ? 0xe2e8f0 : hexToNumber(s.fill),
+      fill: s.fill === NO_FILL ? canvasLabelColor() : hexToNumber(s.fill),
       align: "left",
       lineHeight: fontSize * 1.3,
     };
   }
   if (s.kind === "icon" || s.kind === "image") {
-    // label sits beneath the object on the canvas, so it needs a light, canvas-readable color
     return {
       fontFamily: FONT,
       fontSize,
       fontWeight: "500",
-      fill: 0xe2e8f0,
+      fill: canvasLabelColor(),
       align: "center",
       wordWrap: true,
       wordWrapWidth: Math.max(80, s.w * 1.5),

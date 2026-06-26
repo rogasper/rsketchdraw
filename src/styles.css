@@ -9,7 +9,64 @@
   --accent: #38bdf8;
   --accent-strong: #0ea5e9;
   --danger: #f87171;
+  --hover-bg: #161f33;
+  --canvas-bg: #0b1220;
+  --dash-gradient-start: #16233b;
+  --shadow-color: rgba(0, 0, 0, 0.45);
+  --shadow-color-strong: rgba(0, 0, 0, 0.55);
+  --shadow-color-text: rgba(0, 0, 0, 0.4);
+  --shadow-color-toast: rgba(0, 0, 0, 0.5);
+  --overlay-bg: rgba(2, 6, 23, 0.6);
+  --overlay-hover-bg: rgba(2, 6, 23, 0.85);
+  --key-bg: rgba(15, 23, 42, 0.66);
+  --preview-bg: rgba(255, 255, 255, 0.04);
+  --border-hover: rgba(148, 163, 184, 0.4);
+  --accent-tint: rgba(56, 189, 248, 0.16);
+  --accent-tint-strong: rgba(56, 189, 248, 0.5);
+  --accent-shadow: rgba(56, 189, 248, 0.25);
+  --accent-border-hover: rgba(56, 189, 248, 0.5);
+  --accent-text-on-btn: #04121f;
+  --grid-dot-color: rgba(148, 163, 184, 0.16);
+  --card-empty-color: rgba(148, 163, 184, 0.4);
+  --banner-bg: rgba(14, 165, 233, 0.16);
+  --banner-border: rgba(56, 189, 248, 0.4);
+  --banner-text: #bae6fd;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+[data-theme="light"] {
+  --bg: #fafbfc;
+  --bg-2: #f1f3f5;
+  --panel: rgba(255, 255, 255, 0.82);
+  --panel-solid: #ffffff;
+  --border: rgba(100, 116, 139, 0.24);
+  --text: #0f172a;
+  --muted: #64748b;
+  --accent: #0284c7;
+  --accent-strong: #0369a1;
+  --danger: #dc2626;
+  --hover-bg: #eef0f2;
+  --canvas-bg: #fafbfc;
+  --dash-gradient-start: #dbeafe;
+  --shadow-color: rgba(0, 0, 0, 0.08);
+  --shadow-color-strong: rgba(0, 0, 0, 0.1);
+  --shadow-color-text: rgba(0, 0, 0, 0.06);
+  --shadow-color-toast: rgba(0, 0, 0, 0.08);
+  --overlay-bg: rgba(0, 0, 0, 0.06);
+  --overlay-hover-bg: rgba(0, 0, 0, 0.12);
+  --key-bg: rgba(0, 0, 0, 0.06);
+  --preview-bg: rgba(0, 0, 0, 0.04);
+  --border-hover: rgba(100, 116, 139, 0.35);
+  --accent-tint: rgba(2, 132, 199, 0.1);
+  --accent-tint-strong: rgba(2, 132, 199, 0.25);
+  --accent-shadow: rgba(2, 132, 199, 0.2);
+  --accent-border-hover: rgba(2, 132, 199, 0.4);
+  --accent-text-on-btn: #ffffff;
+  --grid-dot-color: rgba(100, 116, 139, 0.12);
+  --card-empty-color: rgba(100, 116, 139, 0.35);
+  --banner-bg: rgba(2, 132, 199, 0.08);
+  --banner-border: rgba(2, 132, 199, 0.25);
+  --banner-text: #075985;
 }
 
 * {
@@ -47,8 +104,8 @@ button {
   transition: background 0.12s, border-color 0.12s, transform 0.05s;
 }
 .btn:hover {
-  border-color: rgba(148, 163, 184, 0.4);
-  background: #161f33;
+  border-color: var(--border-hover);
+  background: var(--hover-bg);
 }
 .btn:active {
   transform: translateY(1px);
@@ -56,7 +113,7 @@ button {
 .btn--accent {
   background: var(--accent-strong);
   border-color: var(--accent-strong);
-  color: #04121f;
+  color: var(--accent-text-on-btn);
   font-weight: 600;
 }
 .btn--accent:hover {
@@ -95,7 +152,7 @@ button {
   touch-action: none;
   user-select: none;
   background-color: var(--bg);
-  background-image: radial-gradient(rgba(148, 163, 184, 0.16) 1px, transparent 1px);
+  background-image: radial-gradient(var(--grid-dot-color) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 .editor__canvas canvas {
@@ -145,9 +202,9 @@ button {
   top: 64px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(14, 165, 233, 0.16);
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  color: #bae6fd;
+  background: var(--banner-bg);
+  border: 1px solid var(--banner-border);
+  color: var(--banner-text);
   padding: 7px 14px;
   border-radius: 999px;
   font-size: 12.5px;
@@ -207,12 +264,12 @@ button {
   color: var(--accent);
 }
 .tool:hover {
-  background: #161f33;
+  background: var(--hover-bg);
   color: var(--text);
 }
 .tool.is-active {
-  background: rgba(56, 189, 248, 0.16);
-  border-color: rgba(56, 189, 248, 0.5);
+  background: var(--accent-tint);
+  border-color: var(--accent-tint-strong);
   color: var(--accent);
 }
 
@@ -293,13 +350,13 @@ button {
   transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.05s;
 }
 .seg__btn:hover {
-  border-color: rgba(148, 163, 184, 0.4);
-  background: #161f33;
+  border-color: var(--border-hover);
+  background: var(--hover-bg);
   color: var(--text);
 }
 .seg__btn.is-active {
-  background: rgba(56, 189, 248, 0.16);
-  border-color: rgba(56, 189, 248, 0.5);
+  background: var(--accent-tint);
+  border-color: var(--accent-tint-strong);
   color: var(--accent);
 }
 .seg__btn:active {
@@ -319,7 +376,7 @@ button {
 }
 .swatch.is-open {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 0 2px var(--accent-shadow);
 }
 
 /* "no fill" indicator: dark tile crossed by a red diagonal */
@@ -347,7 +404,7 @@ button {
   background: var(--panel-solid);
   border: 1px solid var(--border);
   border-radius: 10px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 12px 32px var(--shadow-color);
   z-index: 20;
 }
 .swatch-pop__chip {
@@ -377,8 +434,8 @@ button {
   bottom: 1px;
   padding: 0 3px;
   border-radius: 3px;
-  background: rgba(15, 23, 42, 0.66);
-  color: #f8fafc;
+  background: var(--key-bg);
+  color: var(--text);
   font: 700 10px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
   pointer-events: none;
 }
@@ -398,7 +455,7 @@ button {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   border-radius: 8px;
   border: 2px solid var(--accent);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px var(--shadow-color-text);
   caret-color: var(--accent);
   overflow: hidden;
 }
@@ -429,7 +486,7 @@ button {
   background: var(--panel-solid);
   border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 20px 50px var(--shadow-color-strong);
   overflow: hidden;
 }
 .icon-palette__input {
@@ -457,7 +514,7 @@ button {
 .icon-row__preview {
   flex: 0 0 auto;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--preview-bg);
 }
 .icon-row__key {
   flex: 1;
@@ -474,7 +531,7 @@ button {
   max-width: 45%;
 }
 .icon-row.is-active {
-  background: rgba(56, 189, 248, 0.16);
+  background: var(--accent-tint);
 }
 .icon-row--empty {
   color: var(--muted);
@@ -497,7 +554,7 @@ button {
   background: var(--panel-solid);
   border: 1px solid var(--border);
   border-radius: 10px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 20px 50px var(--shadow-color-strong);
 }
 .ctx-menu__item {
   display: flex;
@@ -514,7 +571,7 @@ button {
   text-align: left;
 }
 .ctx-menu__item:hover:not(:disabled) {
-  background: rgba(56, 189, 248, 0.16);
+  background: var(--accent-tint);
 }
 .ctx-menu__item:disabled {
   color: var(--muted);
@@ -531,7 +588,7 @@ button {
   position: absolute;
   inset: 0;
   overflow-y: auto;
-  background: radial-gradient(circle at 50% -10%, #16233b, var(--bg) 60%);
+  background: radial-gradient(circle at 50% -10%, var(--dash-gradient-start), var(--bg) 60%);
 }
 .dash__header {
   display: flex;
@@ -586,20 +643,20 @@ button {
 }
 .card:hover {
   transform: translateY(-2px);
-  border-color: rgba(56, 189, 248, 0.5);
+  border-color: var(--accent-border-hover);
 }
 .card__thumb {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 10;
   object-fit: cover;
-  background: #0b1220;
+  background: var(--canvas-bg);
 }
 .card__thumb--empty {
   display: grid;
   place-items: center;
   font-size: 34px;
-  color: rgba(148, 163, 184, 0.4);
+  color: var(--card-empty-color);
 }
 .card__meta {
   padding: 11px 13px 13px;
@@ -624,8 +681,8 @@ button {
   height: 30px;
   border: none;
   border-radius: 8px;
-  background: rgba(2, 6, 23, 0.6);
-  color: #fca5a5;
+  background: var(--overlay-bg);
+  color: var(--danger);
   opacity: 0;
   transition: opacity 0.1s;
 }
@@ -633,7 +690,7 @@ button {
   opacity: 1;
 }
 .card__delete:hover {
-  background: rgba(2, 6, 23, 0.85);
+  background: var(--overlay-hover-bg);
 }
 
 /* ---------- toast ---------- */
@@ -648,7 +705,7 @@ button {
   padding: 10px 16px;
   border-radius: 10px;
   font-size: 13px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 12px 30px var(--shadow-color-toast);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.18s, transform 0.18s;

@@ -1,0 +1,17 @@
+[phases.setup]
+nixPkgs = ["nginx"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[phases.deploy]
+cmds = [
+  "mkdir -p /usr/share/nginx/html",
+  "cp -r dist/* /usr/share/nginx/html/",
+]
+
+[start]
+cmd = "nginx -g 'daemon off;'"
