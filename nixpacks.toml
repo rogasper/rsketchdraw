@@ -5,10 +5,8 @@ nixPkgs = ["nginx"]
 cmds = ["npm ci"]
 
 [phases.build]
-cmds = ["npm run build"]
-
-[phases.deploy]
 cmds = [
+  "npm run build",
   "mkdir -p /usr/share/nginx/html",
   "cp -r dist/* /usr/share/nginx/html/",
 ]
