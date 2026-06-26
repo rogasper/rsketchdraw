@@ -58,7 +58,7 @@ type Gesture =
   | { kind: "pan"; lastX: number; lastY: number }
   | {
       kind: "create";
-      tool: "rect" | "circle" | "triangle";
+      tool: "rect" | "circle" | "triangle" | "diamond";
       sx: number;
       sy: number;
       cx: number;
@@ -213,7 +213,7 @@ export class Controller {
     let c = "default";
     if (this.spaceDown || tool === "hand") c = "grab";
     else if (tool === "text") c = "text";
-    else if (tool === "rect" || tool === "circle" || tool === "triangle" || tool === "line" || tool === "arrow")
+    else if (tool === "rect" || tool === "circle" || tool === "triangle" || tool === "diamond" || tool === "line" || tool === "arrow")
       c = "crosshair";
     this.root.classList.remove("cursor-rotate");
     this.root.style.cursor = c;
@@ -309,7 +309,7 @@ export class Controller {
       return;
     }
 
-    if (tool === "rect" || tool === "circle" || tool === "triangle") {
+    if (tool === "rect" || tool === "circle" || tool === "triangle" || tool === "diamond") {
       this.gesture = { kind: "create", tool, sx: p.x, sy: p.y, cx: p.x, cy: p.y, square: e.shiftKey };
       scene.requestRender();
       return;
@@ -893,6 +893,7 @@ export class Controller {
       if (k === "r") return void $tool.set("rect");
       if (k === "o") return void $tool.set("circle");
       if (k === "g") return void $tool.set("triangle");
+      if (k === "d") return void $tool.set("diamond");
       if (k === "l") return void $tool.set("line");
       if (k === "a") return void $tool.set("arrow");
       if (k === "m") return void $tool.set("hand");
@@ -1240,6 +1241,7 @@ export class Controller {
       const b = dragBox(gest.sx, gest.sy, gest.cx, gest.cy, gest.square);
       if (gest.tool === "circle") g.ellipse(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, b.h / 2);
       else if (gest.tool === "triangle") g.poly([b.x, b.y + b.h, b.x + b.w / 2, b.y, b.x + b.w, b.y + b.h]);
+      else if (gest.tool === "diamond") g.poly([b.x + b.w / 2, b.y, b.x + b.w, b.y + b.h / 2, b.x + b.w / 2, b.y + b.h, b.x, b.y + b.h / 2]);
       else g.roundRect(b.x, b.y, b.w, b.h, 4);
       g.fill({ color: ACCENT, alpha: 0.1 });
       g.stroke({ width: 1.5, color: ACCENT });

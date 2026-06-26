@@ -89,6 +89,20 @@ function pointInTriangle(px: number, py: number, ax: number, ay: number, bx: num
   return !(hasNeg && hasPos);
 }
 
+function pointInConvexPolygon(px: number, py: number, verts: number[]): boolean {
+  let sign = 0;
+  for (let i = 0; i < verts.length; i += 2) {
+    const ax = verts[i], ay = verts[i + 1];
+    const bx = verts[(i + 2) % verts.length], by = verts[(i + 3) % verts.length];
+    const d = cross({ x: px, y: py }, { x: ax, y: ay }, { x: bx, y: by });
+    if (d !== 0) {
+      if (sign === 0) sign = d > 0 ? 1 : -1;
+      else if ((d > 0 ? 1 : -1) !== sign) return false;
+    }
+  }
+  return true;
+}
+
 export function pointInShape(s: Shape, p: Pt): boolean {
   const rot = s.rotation ?? 0;
   if (rot !== 0) {
@@ -108,6 +122,12 @@ export function pointInShape(s: Shape, p: Pt): boolean {
     const tx = s.x + s.w / 2, ty = s.y;
     const cx = s.x + s.w, cy = s.y + s.h;
     return pointInTriangle(p.x, p.y, bx, by, tx, ty, cx, cy);
+  }
+  if (s.kind === "diamond") {
+    const x = s.x, y = s.y, w = s.w, h = s.h;
+    return pointInConvexPolygon(p.x, p.y, [
+      x + w / 2, y, x + w, y + h / 2, x + w / 2, y + h, x, y + h / 2,
+    ]);
   }
   return p.x >= s.x && p.x <= s.x + s.w && p.y >= s.y && p.y <= s.y + s.h;
 }

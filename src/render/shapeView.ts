@@ -138,6 +138,10 @@ function drawShape(g: Graphics, s: Shape): void {
     g.poly([0, s.h, s.w / 2, 0, s.w, s.h]);
     if (!transparent) g.fill(fill);
     g.stroke({ width: 2, color: stroke, alignment: 0.5 });
+  } else if (s.kind === "diamond") {
+    g.poly([s.w / 2, 0, s.w, s.h / 2, s.w / 2, s.h, 0, s.h / 2]);
+    if (!transparent) g.fill(fill);
+    g.stroke({ width: 2, color: stroke, alignment: 0.5 });
   } else if (s.kind === "image") {
     // the Sprite supplies the pixels; gfx just draws the outline on top
     g.roundRect(0, 0, s.w, s.h, 4);
@@ -218,6 +222,12 @@ function syncText(view: NodeView, s: Shape): void {
   } else {
     view.text.anchor.set(0.5);
     view.text.position.set(s.w / 2, s.h / 2);
+  }
+  // counter-rotate so labels stay readable when shape is rotated
+  if (s.rotation && s.kind !== "text") {
+    view.text.rotation = -s.rotation;
+  } else {
+    view.text.rotation = 0;
   }
   // keep the label hidden across live updates while it's being edited in an overlay
   view.text.visible = !view.labelHidden;

@@ -40,6 +40,7 @@ const ICON_TEXT = svg('<path d="M6 6h12"/><path d="M12 6v12"/>');
 const ICON_RECT = svg('<rect x="4" y="6.5" width="16" height="11" rx="2"/>');
 const ICON_CIRCLE = svg('<circle cx="12" cy="12" r="7.5"/>');
 const ICON_TRIANGLE = svg('<path d="M12 3.5l7.5 16H4.5z"/>');
+const ICON_DIAMOND = svg('<path d="M12 3.5L21 12l-9 8.5-9-8.5z"/>');
 const ICON_LINE = svg('<path d="M6.5 17.5 17.5 6.5"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/>');
 const ICON_ARROW = svg('<path d="M5 19 16.5 7.5"/><path d="M16.5 7.5 13.7 14.2"/><path d="M16.5 7.5 9.8 10.3"/>');
 const ICON_HAND = svg(
@@ -58,6 +59,7 @@ const TOOLS: Array<{ tool: ToolName; icon: string; key: string; title: string }>
   { tool: "rect", icon: ICON_RECT, key: "R", title: "Rectangle (R)" },
   { tool: "circle", icon: ICON_CIRCLE, key: "O", title: "Circle (O)" },
   { tool: "triangle", icon: ICON_TRIANGLE, key: "G", title: "Triangle (G)" },
+  { tool: "diamond", icon: ICON_DIAMOND, key: "D", title: "Diamond (D)" },
   { tool: "line", icon: ICON_LINE, key: "L", title: "Connector line (L)" },
   { tool: "arrow", icon: ICON_ARROW, key: "A", title: "Arrow / directed edge (A)" },
   { tool: "hand", icon: ICON_HAND, key: "M", title: "Move / pan (M or space-drag)" },

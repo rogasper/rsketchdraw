@@ -1,6 +1,6 @@
 export type ID = string;
 
-export type ShapeKind = "rect" | "circle" | "icon" | "image" | "text" | "triangle";
+export type ShapeKind = "rect" | "circle" | "icon" | "image" | "text" | "triangle" | "diamond";
 
 export interface Shape {
   id: ID;
@@ -91,6 +91,7 @@ export type ToolName =
   | "rect"
   | "circle"
   | "triangle"
+  | "diamond"
   | "line"
   | "arrow"
   | "hand";
