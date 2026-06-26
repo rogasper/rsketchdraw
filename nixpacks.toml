@@ -12,4 +12,4 @@ cmds = [
 ]
 
 [start]
-cmd = "nginx -g 'daemon off;'"
+cmd = "mkdir -p /var/log/nginx && nginx -g 'daemon off;'"
