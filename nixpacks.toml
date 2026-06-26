@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["nginx"]
+nixPkgs = ["nodejs_20", "nginx"]
 
 [phases.install]
 cmds = ["npm ci"]
