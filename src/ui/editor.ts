@@ -81,6 +81,7 @@ export async function mountEditor(
 
   await scene.init(host);
   actions.loadBoard(board);
+  actions.recolorForTheme($theme.get());
   initHistory();
   if (Object.keys(board.shapes).length) fitToContent();
   else centerOrigin();
