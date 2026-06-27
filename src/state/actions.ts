@@ -402,28 +402,25 @@ export function recolorForTheme(theme: Theme): void {
       if (s.fill === oldLabelHex || s.fill === "#e2e8f0") {
         s.fill = newLabelHex;
         s.stroke = newLabelHex;
-        scene.updateNode(s.id);
         changed = true;
       }
     } else {
-      if (s.fill === prev.fill) {
-        s.fill = next.fill;
-        scene.updateNode(s.id);
-        changed = true;
-      }
-      if (s.stroke === prev.stroke) {
-        s.stroke = next.stroke;
-        scene.updateNode(s.id);
-        changed = true;
-      }
+      if (s.fill === prev.fill) s.fill = next.fill;
+      if (s.stroke === prev.stroke) s.stroke = next.stroke;
     }
+    // Always refresh the view: a shape's rendered label color follows the
+    // theme even when its fill/stroke didn't change (NO_FILL rects, icon and
+    // text labels all derive their text color from $theme, not s.fill), so a
+    // theme switch must re-run syncText for every object.
+    scene.updateNode(s.id);
+    changed = true;
   }
   for (const e of Object.values(doc.board.edges)) {
     if (e.stroke === prev.stroke) {
       e.stroke = next.stroke;
-      scene.updateEdge(e.id);
       changed = true;
     }
+    scene.updateEdge(e.id);
   }
   if (changed) bumpRevision();
 }
