@@ -52,11 +52,14 @@ const LABEL_GAP = 6;
 function textStyle(s: Shape): TextStyleOptions {
   const fontSize = effectiveFontSize(s);
   if (s.kind === "text") {
+    const textFill = s.fill === NO_FILL || s.fill === "#e2e8f0" || s.fill === "#f1f5f9" || s.fill === "#0f172a"
+      ? canvasLabelColor()
+      : hexToNumber(s.fill);
     return {
       fontFamily: FONT,
       fontSize,
       fontWeight: "600",
-      fill: s.fill === NO_FILL ? canvasLabelColor() : hexToNumber(s.fill),
+      fill: textFill,
       align: "left",
       lineHeight: fontSize * 1.3,
     };
