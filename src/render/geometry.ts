@@ -1,5 +1,5 @@
 import type { Edge, ID, Shape } from "../state/types";
-import type { Theme } from "../state/store";
+import { $theme, type Theme } from "../state/store";
 
 export interface Pt {
   x: number;
@@ -398,8 +398,7 @@ function contrast(lA: number, lB: number): number {
  * text rather than relying on a luminance threshold that can mis-pick mid-tones.
  */
 export function canvasLabelColor(): number {
-  const root = document.documentElement;
-  return root.getAttribute("data-theme") === "light" ? TEXT_DARK : TEXT_LIGHT;
+  return $theme.get() === "light" ? TEXT_DARK : TEXT_LIGHT;
 }
 
 export function readableText(bgHex: string): number {
