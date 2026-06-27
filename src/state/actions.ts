@@ -15,6 +15,7 @@ import {
   type Theme,
 } from "./store";
 import type { Board, Edge, ID, Shape, ShapeKind } from "./types";
+import { canvasLabelHexForTheme } from "../render/geometry";
 
 export const DEFAULT_SIZE = 110;
 
@@ -393,17 +394,28 @@ export function recolorForTheme(theme: Theme): void {
   const isDark = theme === "dark";
   const prev = defaultStyle(isDark ? "light" : "dark");
   const next = defaultStyle(theme);
+  const oldLabelHex = canvasLabelHexForTheme(isDark ? "light" : "dark");
+  const newLabelHex = canvasLabelHexForTheme(theme);
   let changed = false;
   for (const s of Object.values(doc.board.shapes)) {
-    if (s.fill === prev.fill) {
-      s.fill = next.fill;
-      scene.updateNode(s.id);
-      changed = true;
-    }
-    if (s.stroke === prev.stroke) {
-      s.stroke = next.stroke;
-      scene.updateNode(s.id);
-      changed = true;
+    if (s.kind === "text") {
+      if (s.fill === oldLabelHex || s.fill === "#e2e8f0") {
+        s.fill = newLabelHex;
+        s.stroke = newLabelHex;
+        scene.updateNode(s.id);
+        changed = true;
+      }
+    } else {
+      if (s.fill === prev.fill) {
+        s.fill = next.fill;
+        scene.updateNode(s.id);
+        changed = true;
+      }
+      if (s.stroke === prev.stroke) {
+        s.stroke = next.stroke;
+        scene.updateNode(s.id);
+        changed = true;
+      }
     }
   }
   for (const e of Object.values(doc.board.edges)) {

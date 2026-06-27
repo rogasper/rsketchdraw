@@ -1,6 +1,7 @@
 import type { Graphics } from "pixi.js";
 import {
   boundaryPoint,
+  canvasLabelHex,
   center,
   edgeBendHandle,
   type Pt,
@@ -918,9 +919,10 @@ export class Controller {
     // editor overlay (a hardcoded box wouldn't line up with the auto-grown editor).
     // Measure at the board's default tier so a fresh text box matches it.
     const box = measureTextBox("", doc.board.fontSize ?? DEFAULT_FONT_SIZE);
+    const textColor = canvasLabelHex();
     const shape = actions.createShape("text", wx, wy, box.w, box.h, {
-      fill: "#e2e8f0",
-      stroke: "#e2e8f0",
+      fill: textColor,
+      stroke: textColor,
     });
     setSelection([shape.id], []);
     $tool.set("select");

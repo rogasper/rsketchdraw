@@ -1,4 +1,5 @@
 import type { Edge, ID, Shape } from "../state/types";
+import type { Theme } from "../state/store";
 
 export interface Pt {
   x: number;
@@ -353,6 +354,18 @@ export function hexToNumber(hex: string): number {
       .join("");
   }
   return parseInt(hex, 16) || 0;
+}
+
+export function numToHex(n: number): string {
+  return "#" + n.toString(16).padStart(6, "0");
+}
+
+export function canvasLabelHex(): string {
+  return numToHex(canvasLabelColor());
+}
+
+export function canvasLabelHexForTheme(theme: Theme): string {
+  return theme === "light" ? numToHex(TEXT_DARK) : numToHex(TEXT_LIGHT);
 }
 
 /** Label colors paired with fills; their luminance is precomputed below. */
