@@ -205,13 +205,12 @@ function syncText(view: NodeView, s: Shape): void {
     }
     return;
   }
-  if (!view.text) {
-    view.text = new Text({ text: s.text, style: textStyle(s), resolution: 2 });
-    view.container.addChild(view.text);
-  } else {
-    view.text.text = s.text;
-    view.text.style = textStyle(s);
+  if (view.text) {
+    view.container.removeChild(view.text);
+    view.text.destroy();
   }
+  view.text = new Text({ text: s.text, style: textStyle(s), resolution: 2 });
+  view.container.addChild(view.text);
   if (s.kind === "text") {
     view.text.anchor.set(0);
     view.text.position.set(TEXT_PAD, TEXT_PAD);
