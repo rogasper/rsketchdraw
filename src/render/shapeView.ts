@@ -10,7 +10,7 @@ import {
 import type { Shape } from "../state/types";
 import { doc, $theme } from "../state/store";
 import { DEFAULT_FONT_SIZE } from "./fontPresets";
-import { canvasLabelColor, hexToNumber, NO_FILL, readableText } from "./geometry";
+import { hexToNumber, NO_FILL, readableText } from "./geometry";
 import { drawIcon } from "./icons";
 import { TEXT_PAD } from "./measure";
 
@@ -56,7 +56,7 @@ function textStyle(s: Shape): TextStyleOptions {
       fontFamily: FONT,
       fontSize,
       fontWeight: "600",
-      fill: canvasLabelColor(),
+      fill: $theme.get() === "light" ? "#0f172a" : "#f1f5f9",
       align: "left",
       lineHeight: fontSize * 1.3,
     };
@@ -66,7 +66,7 @@ function textStyle(s: Shape): TextStyleOptions {
       fontFamily: FONT,
       fontSize,
       fontWeight: "500",
-      fill: canvasLabelColor(),
+      fill: $theme.get() === "light" ? "#0f172a" : "#f1f5f9",
       align: "center",
       wordWrap: true,
       wordWrapWidth: Math.max(80, s.w * 1.5),

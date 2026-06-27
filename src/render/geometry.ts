@@ -402,7 +402,7 @@ export function canvasLabelColor(): number {
 }
 
 export function readableText(bgHex: string): number {
-  if (bgHex === NO_FILL) return canvasLabelColor();
+  if (bgHex === NO_FILL) return $theme.get() === "light" ? TEXT_DARK : TEXT_LIGHT;
   const bg = relativeLuminance(hexToNumber(bgHex));
   return contrast(bg, L_TEXT_DARK) >= contrast(bg, L_TEXT_LIGHT) ? TEXT_DARK : TEXT_LIGHT;
 }
