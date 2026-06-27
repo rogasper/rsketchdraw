@@ -8,7 +8,7 @@ import {
   Texture,
 } from "pixi.js";
 import type { Shape } from "../state/types";
-import { doc } from "../state/store";
+import { doc, $theme } from "../state/store";
 import { DEFAULT_FONT_SIZE } from "./fontPresets";
 import { canvasLabelColor, hexToNumber, NO_FILL, readableText } from "./geometry";
 import { drawIcon } from "./icons";
@@ -43,7 +43,7 @@ function styleKeyOf(s: Shape): string {
 function textKeyOf(s: Shape): string {
   // key on the EFFECTIVE size (not raw fontSize) so a board-wide scale change
   // invalidates the cache for objects that have no explicit per-object font
-  return `${s.kind}|${s.text}|${s.w}|${s.h}|${s.fill}|${effectiveFontSize(s)}`;
+  return `${s.kind}|${s.text}|${s.w}|${s.h}|${s.fill}|${$theme.get()}|${effectiveFontSize(s)}`;
 }
 
 /** Gap (world units) between an icon/image and its label sitting beneath it. */
@@ -52,14 +52,11 @@ const LABEL_GAP = 6;
 function textStyle(s: Shape): TextStyleOptions {
   const fontSize = effectiveFontSize(s);
   if (s.kind === "text") {
-    const textFill = s.fill === NO_FILL || s.fill === "#e2e8f0" || s.fill === "#f1f5f9" || s.fill === "#0f172a"
-      ? canvasLabelColor()
-      : hexToNumber(s.fill);
     return {
       fontFamily: FONT,
       fontSize,
       fontWeight: "600",
-      fill: textFill,
+      fill: canvasLabelColor(),
       align: "left",
       lineHeight: fontSize * 1.3,
     };
