@@ -20,6 +20,7 @@ import {
   $camera,
   $selection,
   $tool,
+  bumpRevision,
   clearSelection,
   doc,
   setSelection,
@@ -163,6 +164,7 @@ export class Controller {
     root.addEventListener("drop", this.onDrop);
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
+    document.addEventListener("paste", this.onPaste);
     // prevent the browser from navigating to a dropped image anywhere on the page
     window.addEventListener("dragover", this.onDragOver);
     window.addEventListener("drop", this.onWindowDrop);
@@ -187,6 +189,7 @@ export class Controller {
     this.root.removeEventListener("drop", this.onDrop);
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
+    document.removeEventListener("paste", this.onPaste);
     window.removeEventListener("dragover", this.onDragOver);
     window.removeEventListener("drop", this.onWindowDrop);
     this.subs.forEach((u) => u());
@@ -282,12 +285,30 @@ export class Controller {
     const hasGroup =
       [...sel.shapes].some((id) => doc.board.shapes[id]?.group !== undefined) ||
       [...sel.edges].some((id) => doc.board.edges[id]?.group !== undefined);
-    this.menu.open(e.clientX, e.clientY, [
+    const imageIds = [...sel.shapes].filter((id) => doc.board.shapes[id]?.kind === "image");
+    const items: { label: string; hint?: string; disabled?: boolean; onSelect: () => void }[] = [];
+    if (imageIds.length) {
+      const allHidden = imageIds.every((id) => doc.board.shapes[id]?.hideOutline);
+      items.push({
+        label: allHidden ? "Show Outline" : "Hide Outline",
+        onSelect: () => {
+          for (const id of imageIds) {
+            const s = doc.board.shapes[id];
+            if (!s) continue;
+            s.hideOutline = !s.hideOutline;
+            scene.updateNode(id);
+          }
+          bumpRevision();
+        },
+      });
+    }
+    items.push(
       { label: "Bring to Front", hint: "]", onSelect: () => actions.bringToFront(ids) },
       { label: "Send to Back", hint: "[", onSelect: () => actions.sendToBack(ids) },
       { label: "Group", hint: "⌘G", disabled: count < 2, onSelect: () => actions.groupSelection() },
       { label: "Ungroup", hint: "⌘U", disabled: !hasGroup, onSelect: () => actions.ungroupSelection() },
-    ]);
+    );
+    this.menu.open(e.clientX, e.clientY, items);
   };
 
   // ---- pointer ----
@@ -795,8 +816,8 @@ export class Controller {
       return;
     }
     if (meta && (e.key === "v" || e.key === "V")) {
-      e.preventDefault();
-      pasteClipboard();
+      // paste event (onPaste) handles both system image paste and internal shape paste.
+      // DO NOT call preventDefault here — that cancels the paste event entirely.
       return;
     }
     if (meta && (e.key === "a" || e.key === "A")) {
@@ -909,6 +930,25 @@ export class Controller {
       this.gesture.square = false;
       scene.requestRender();
     }
+  };
+
+  // ---- paste (system clipboard images + internal shapes) ----
+  private onPaste = (e: ClipboardEvent): void => {
+    if (this.textEditor.active || this.palette.active || this.menu.active || isEditingDom()) return;
+    const items = e.clipboardData?.items;
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (!item.type.startsWith("image/")) continue;
+        const file = item.getAsFile();
+        if (!file) continue;
+        e.preventDefault();
+        const world = screenToWorld(this.root.clientWidth / 2, this.root.clientHeight / 2);
+        this.addImageFile(file, world.x, world.y);
+        return;
+      }
+    }
+    pasteClipboard();
   };
 
   // ---- text editing ----

@@ -38,7 +38,7 @@ export interface NodeView {
 }
 
 function styleKeyOf(s: Shape): string {
-  return `${s.kind}|${s.w}|${s.h}|${s.fill}|${s.stroke}|${s.icon ?? ""}|${s.src ?? ""}|${s.cornerRadius ?? ""}`;
+  return `${s.kind}|${s.w}|${s.h}|${s.fill}|${s.stroke}|${s.icon ?? ""}|${s.src ?? ""}|${s.cornerRadius ?? ""}|${s.hideOutline ?? ""}`;
 }
 function textKeyOf(s: Shape): string {
   // key on the EFFECTIVE size (not raw fontSize) so a board-wide scale change
@@ -143,9 +143,10 @@ function drawShape(g: Graphics, s: Shape): void {
     if (!transparent) g.fill(fill);
     g.stroke({ width: 2, color: stroke, alignment: 0.5 });
   } else if (s.kind === "image") {
-    // the Sprite supplies the pixels; gfx just draws the outline on top
-    g.roundRect(0, 0, s.w, s.h, 4);
-    g.stroke({ width: 2, color: stroke, alignment: 1 });
+    if (!s.hideOutline) {
+      g.roundRect(0, 0, s.w, s.h, 4);
+      g.stroke({ width: 2, color: stroke, alignment: 1 });
+    }
   } else if (s.kind === "text") {
     // text objects have no box; the Text child is the whole object
   } else {

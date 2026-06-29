@@ -27,6 +27,8 @@ export interface Shape {
   cornerRadius?: number;
   /** rotation in radians, around the shape's center; 0 / undefined = axis-aligned */
   rotation?: number;
+  /** only for kind === "image": hide the rounded-rect stroke outline */
+  hideOutline?: boolean;
 }
 
 export interface Edge {
